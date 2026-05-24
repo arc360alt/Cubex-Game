@@ -122,7 +122,9 @@
     // macOS desktop OpenGL — legacy/compatibility profile (2.1)
     #include <OpenGL/gl.h>
     #include <OpenGL/glext.h>
+    #ifndef USE_VBO
     #define USE_VBO
+    #endif
     #define glFogx(a,b)             glFogi(a,b)
     #define glOrthof(a,b,c,d,e,f)   glOrtho(a,b,c,d,e,f)
     #define glClearDepthf(x)        glClearDepth(x)
@@ -131,7 +133,9 @@
     // Linux desktop OpenGL — legacy/compatibility profile (2.1)
     #include <GL/gl.h>
     #include <GL/glext.h>
+    #ifndef USE_VBO
     #define USE_VBO
+    #endif
     #define glFogx(a,b)             glFogi(a,b)
     #define glOrthof(a,b,c,d,e,f)   glOrtho(a,b,c,d,e,f)
     #define glClearDepthf(x)        glClearDepth(x)

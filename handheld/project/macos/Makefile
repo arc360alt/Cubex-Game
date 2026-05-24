@@ -13,9 +13,9 @@ PNG_CFLAGS   := $(shell pkg-config --cflags libpng 2>/dev/null || echo "-I/opt/h
 PNG_LIBS     := $(shell pkg-config --libs   libpng 2>/dev/null || echo "-lpng")
 
 # ── Build mode (debug|release) ────────────────────────────────────────────────
-# Usage:  make              (debug, with ASAN+UBSAN)
-#         make BUILD=release (optimised, no sanitizers)
-BUILD ?= debug
+# Usage:  make              (release, optimized)
+#         make BUILD=debug  (ASAN+UBSAN)
+BUILD ?= release
 
 ifeq ($(BUILD),release)
   OPT_FLAGS := -O2 -DNDEBUG
