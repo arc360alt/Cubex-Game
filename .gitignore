@@ -1,0 +1,52 @@
+# macOS / Finder
+.DS_Store
+**/.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# Build outputs — compiled objects and binaries
+handheld/project/macos/obj/
+handheld/project/macos/minecraftpe
+handheld/project/linux/obj/
+handheld/project/linux/minecraftpe
+handheld/project/raspberry/obj/
+handheld/project/raspberry/minecraftpi
+handheld/project/raspberry/libRakNet.so
+handheld/project/raspberry/libRakNet_static.a
+handheld/project/dedicated_server/obj/
+handheld/project/dedicated_server/minecraft_server
+handheld/project/win32/obj/
+handheld/project/win32/Debug/
+handheld/project/win32/Release/
+handheld/project/win32/*.user
+
+build
+
+# Android build
+handheld/project/android/.gradle/
+handheld/project/android/build/
+handheld/project/android/.cxx/
+handheld/project/android/local.properties
+handheld/project/android/jni/obj/
+handheld/project/android/libs/
+
+.mcpe_external
+.mcpe_cache
+mcpe_server
+minecraftpe
+
+.claude

@@ -1,0 +1,51 @@
+plugins {
+    id 'com.android.application' version '8.3.0'
+}
+
+android {
+    namespace 'com.mojang.minecraftpe'
+    compileSdk 35
+    ndkVersion '27.2.12479018'
+
+    defaultConfig {
+        applicationId 'com.reconnern.mcpe'
+        minSdk 21
+        targetSdk 35
+        versionCode 6006
+        versionName '0.6.0'
+    }
+
+    sourceSets {
+        main {
+            // Old Eclipse/Ant layout
+            java.srcDirs      = ['src']
+            java.excludes     = ['**/Minecraft_Verizon.java']  // requires Verizon SDK
+            res.srcDirs       = ['res']
+            assets.srcDirs    = ['assets']
+            manifest.srcFile    'AndroidManifest.xml'
+            // Pick up the pre-built .so from ndk-build output
+            jniLibs.srcDirs   = ['libs']
+        }
+    }
+
+    buildTypes {
+        debug {
+            debuggable true
+        }
+        release {
+            debuggable false
+            minifyEnabled false
+            // No signing config — produces unsigned APK; sign externally for distribution.
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    lint {
+        abortOnError false
+        checkReleaseBuilds false
+    }
+}
