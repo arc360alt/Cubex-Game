@@ -58,6 +58,15 @@ public:
         return FoliageColor::getDefaultColor();
     }
 
+    void neighborChanged(Level* level, int x, int y, int z, int type) {
+        int currentData = level->getData(x, y, z);
+        if ((currentData & PERSISTENT_LEAF_BIT) == 0) {
+            if ((currentData & UPDATE_LEAF_BIT) == 0)
+                level->setDataNoUpdate(x, y, z, currentData | UPDATE_LEAF_BIT);
+            level->addToTickNextTick(x, y, z, id, 20 + level->random.nextInt(30));
+        }
+    }
+
     void onRemove(Level* level, int x, int y, int z) {
         int r = 1;
         int r2 = r + 1;
@@ -68,8 +77,13 @@ public:
             for (int zo = -r; zo <= r; zo++) {
                 int t = level->getTile(x + xo, y + yo, z + zo);
                 if (t == Tile::leaves->id) {
-                    int currentData = level->getData(x + xo, y + yo, z + zo);
-                    level->setDataNoUpdate(x + xo, y + yo, z + zo, currentData | UPDATE_LEAF_BIT);
+                    int nx = x+xo, ny = y+yo, nz = z+zo;
+                    int currentData = level->getData(nx, ny, nz);
+                    if ((currentData & PERSISTENT_LEAF_BIT) == 0) {
+                        if ((currentData & UPDATE_LEAF_BIT) == 0)
+                            level->setDataNoUpdate(nx, ny, nz, currentData | UPDATE_LEAF_BIT);
+                        level->addToTickNextTick(nx, ny, nz, t, 20 + level->random.nextInt(30));
+                    }
                 }
             }
         }
@@ -81,7 +95,7 @@ public:
         if (level->isClientSide) return;
 
         int currentData = level->getData(x, y, z);
-        if ((currentData & UPDATE_LEAF_BIT) != 0 && (currentData & PERSISTENT_LEAF_BIT) == 0) {
+        if ((currentData & PERSISTENT_LEAF_BIT) == 0) {
             const int r = LeafTile::REQUIRED_WOOD_RANGE;
             int r2 = r + 1;
 
@@ -135,7 +149,8 @@ public:
 
             int mid = checkBuffer[(WO) * WW + (WO) * W + (WO)];
             if (mid >= 0) {
-                level->setDataNoUpdate(x, y, z, currentData & ~UPDATE_LEAF_BIT);
+                if (currentData & UPDATE_LEAF_BIT)
+                    level->setDataNoUpdate(x, y, z, currentData & ~UPDATE_LEAF_BIT);
             } else {
                 die(level, x, y, z);
             }
@@ -172,6 +187,9 @@ public:
 
 			if ((data & LEAF_TYPE_MASK) == NORMAL_LEAF && level->random.nextInt(200) == 0) {
 				popResource(level, x, y, z, ItemInstance(Item::apple, 1, 0));
+			}
+			if (level->random.nextInt(50) == 0) {
+				popResource(level, x, y, z, ItemInstance(Item::stick, 1, 0));
 			}
 		}
 	}

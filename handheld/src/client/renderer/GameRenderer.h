@@ -39,6 +39,7 @@ public:
 
 	void setupClearColor(float a);
 	float getFov(float a, bool applyEffects);
+	void adjustZoom(int scrollDir); // called from Minecraft.cpp scroll handler
 private:
 	void setupFog(int i);
 
@@ -88,6 +89,7 @@ private:
 	float fovOffset;
 	float fovOffsetO;
 	float _setupCameraFov;
+	float zoomBase; // zoom magnitude in degrees (adjusted by scroll wheel)
 
 	// roll modification
 	float cameraRoll;

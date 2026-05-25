@@ -11,8 +11,8 @@
 #include "../LevelConstants.h"
 #include <algorithm>
 
-/*static*/
-bool LevelChunk::touchedSky = false;
+/*static thread_local*/
+thread_local bool LevelChunk::touchedSky = false;
 
 LevelChunk::LevelChunk( Level* level, int x, int z )
 :	level(level),

@@ -725,10 +725,15 @@ void Minecraft::tickInput() {
 		}
 
 		if (e.action == MouseAction::ACTION_WHEEL) {
-			Inventory* v = player->inventory;
-			int numSlots = gui.getNumSlots() - 1;
-			int slot = (v->selected - e.dy + numSlots) % numSlots;
-			v->selectSlot(slot);
+			if (!screen && Keyboard::isKeyDown(Keyboard::KEY_X)) {
+				// Scroll while zoomed → adjust zoom level
+				gameRenderer->adjustZoom(e.dy);
+			} else {
+				Inventory* v = player->inventory;
+				int numSlots = gui.getNumSlots() - 1;
+				int slot = (v->selected - e.dy + numSlots) % numSlots;
+				v->selectSlot(slot);
+			}
 		}
 		/*
 		if (mouseDiggable && options.useMouseForDigging) {
@@ -899,14 +904,6 @@ void Minecraft::tickInput() {
 					}
 				}
 
-				if (key == Keyboard::KEY_X) {
-					const EntityList& entities = level->getAllEntities();
-					for (int i = entities.size()-1; i >= 0; --i) {
-						Entity* e = entities[i];
-						if (!e->isPlayer())
-							level->removeEntity(e);
-					}
-				}
 
 				if (key == Keyboard::KEY_H) {
 					setScreen( new PrerenderTilesScreen() );

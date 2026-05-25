@@ -1009,6 +1009,58 @@ void LevelRenderer::renderHitOutline( Player* player, const HitResult& h, int mo
 	}
 }
 
+void LevelRenderer::renderPlacementOutline(Player* player, const HitResult& h, float a)
+{
+	if (h.type != TILE) return;
+
+	float xo = player->xOld + (player->x - player->xOld) * a;
+	float yo = player->yOld + (player->y - player->yOld) * a;
+	float zo = player->zOld + (player->z - player->zOld) * a;
+
+	// Outline the block being looked at, slightly expanded to sit on top of its surface
+	const float ss = 0.003f;
+	float x0f = h.x - xo - ss;
+	float y0f = h.y - yo - ss;
+	float z0f = h.z - zo - ss;
+	float x1f = x0f + 1.0f + ss * 2;
+	float y1f = y0f + 1.0f + ss * 2;
+	float z1f = z0f + 1.0f + ss * 2;
+
+	Tesselator& t = Tesselator::instance;
+	glEnable2(GL_BLEND);
+	glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+	glDisable2(GL_TEXTURE_2D);
+	glDepthMask(false);
+	glLineWidth(1.5f);
+
+	// White outline with slight transparency
+	t.begin(GL_LINES);
+	t.colorABGR(0xaaffffff);
+
+	// Bottom face
+	t.vertex(x0f, y0f, z0f); t.vertex(x1f, y0f, z0f);
+	t.vertex(x1f, y0f, z0f); t.vertex(x1f, y0f, z1f);
+	t.vertex(x1f, y0f, z1f); t.vertex(x0f, y0f, z1f);
+	t.vertex(x0f, y0f, z1f); t.vertex(x0f, y0f, z0f);
+	// Top face
+	t.vertex(x0f, y1f, z0f); t.vertex(x1f, y1f, z0f);
+	t.vertex(x1f, y1f, z0f); t.vertex(x1f, y1f, z1f);
+	t.vertex(x1f, y1f, z1f); t.vertex(x0f, y1f, z1f);
+	t.vertex(x0f, y1f, z1f); t.vertex(x0f, y1f, z0f);
+	// Verticals
+	t.vertex(x0f, y0f, z0f); t.vertex(x0f, y1f, z0f);
+	t.vertex(x1f, y0f, z0f); t.vertex(x1f, y1f, z0f);
+	t.vertex(x1f, y0f, z1f); t.vertex(x1f, y1f, z1f);
+	t.vertex(x0f, y0f, z1f); t.vertex(x0f, y1f, z1f);
+
+	t.draw();
+
+	glDepthMask(true);
+	glEnable2(GL_TEXTURE_2D);
+	glLineWidth(1.0f);
+	glDisable2(GL_BLEND);
+}
+
 void LevelRenderer::setDirty( int x0, int y0, int z0, int x1, int y1, int z1 )
 {
 	int _x0 = Mth::intFloorDiv(x0, CHUNK_SIZE);

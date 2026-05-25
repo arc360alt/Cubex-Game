@@ -9,4 +9,3 @@
 - **Make the game work with Windows and other operating systems.**
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
-- Fix some chunks not having ther lighting updated while it turns to day or it turns to night, leaving a chunk bright while its dark, or dark while its light

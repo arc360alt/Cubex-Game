@@ -19,6 +19,7 @@
 #include "../../world/level/material/Material.h"
 #include "../../world/Facing.h"
 #include "../../platform/input/Controller.h"
+#include "../../platform/input/Keyboard.h"
 #include "../../platform/input/Mouse.h"
 #include "../../platform/input/Multitouch.h"
 #include "../../NinecraftApp.h"
@@ -39,6 +40,7 @@ GameRenderer::GameRenderer( Minecraft* mc )
 	fovOffsetO(0),
 	fov(1), oFov(1),
 	_setupCameraFov(0),
+	zoomBase(40.0f),
 	zoom(1), zoom_x(0), zoom_y(0),
 	cameraRoll(0), cameraRollO(0),
 	pickDirection(1, 0, 0),
@@ -369,9 +371,11 @@ void GameRenderer::renderLevel(float a) {
 				TIMER_POP_PUSH("select");
 				Player* player = (Player*) cameraEntity;
 				if (mc->useTouchscreen()) {
-					levelRenderer->renderHitSelect(player, mc->hitResult, 0, NULL, a); //player.inventory->getSelected(), a);
+					levelRenderer->renderHitSelect(player, mc->hitResult, 0, NULL, a);
+				} else {
+					levelRenderer->renderPlacementOutline(player, mc->hitResult, a);
 				}
-				levelRenderer->renderHit(player, mc->hitResult, 0, NULL, a);//player->inventory.getSelected(), a);
+				levelRenderer->renderHit(player, mc->hitResult, 0, NULL, a);
 			}
 		}
 
@@ -404,6 +408,17 @@ void GameRenderer::tickFov() {
 
 	oFov = fov;
 	fov += (mc->player->getFieldOfViewModifier() - fov) * 0.5f;
+
+	// X key scope zoom: smoothly lerp FOV offset toward zoomBase (adjustable by scroll)
+	float zoomTarget = (!mc->screen && Keyboard::isKeyDown(Keyboard::KEY_X)) ? -zoomBase : 0.0f;
+	fovOffset += (zoomTarget - fovOffset) * 0.35f;
+}
+
+void GameRenderer::adjustZoom(int scrollDir) {
+	// Each scroll step changes zoom magnitude by 5 degrees, clamped to [10, 65]
+	zoomBase -= scrollDir * 5.0f;
+	if (zoomBase < 10.0f) zoomBase = 10.0f;
+	if (zoomBase > 65.0f) zoomBase = 65.0f;
 }
 
 /*private*/

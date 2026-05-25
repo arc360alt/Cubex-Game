@@ -1,5 +1,7 @@
 #include "ArmorScreen.h"
 #include "crafting/WorkbenchScreen.h"
+#include "IngameBlockSelectionScreen.h"
+#include "ScreenChooser.h"
 #include "../../../platform/input/Mouse.h"
 #include "../../../platform/input/Keyboard.h"
 #include "../../../util/Mth.h"
@@ -54,6 +56,7 @@ ArmorScreen::ArmorScreen():
 	btnClose(4, ""),
 	bHeader (5, "Inventory"),
 	btnCraft(6, "Craft"),
+	btnItems(7, "Items"),
 	guiBackground(NULL),
 	guiSlot(NULL),
 	guiPaneFrame(NULL),
@@ -90,6 +93,7 @@ void ArmorScreen::init() {
 	buttons.push_back(&bHeader);
 	buttons.push_back(&btnClose);
 	buttons.push_back(&btnCraft);
+	buttons.push_back(&btnItems);
 
 	armorButtons[0] = &btnArmor0;
 	armorButtons[1] = &btnArmor1;
@@ -123,6 +127,11 @@ void ArmorScreen::setupPositions() {
 	btnCraft.x = btnClose.x - btnCraft.width - 2;
 	btnCraft.y = 0;
 
+	btnItems.height = 19;
+	btnItems.width  = 44;
+	btnItems.x = btnCraft.x - btnItems.width - 2;
+	btnItems.y = 0;
+
 	// Inventory pane — reserve ItemSize+4 pixels at the bottom for the hotbar row
 	const int maxWidth = (int)(width/1.8f) - Bx - Bx;
 	const int InventoryColumns = maxWidth / ItemSize;
@@ -138,9 +147,9 @@ void ArmorScreen::setupPositions() {
 		26 + By, realWidth, height-By-By-28 - hotbarReserve);
 #endif
 
-	// Hotbar row: 9 slots, centred under the inventory pane
+	// Hotbar row: 9 slots, centred under the full screen
 	const int hotbarTotalW = NUM_HOTBAR * ItemSize;
-	hotbarRect.x = inventoryPaneRect.x + (inventoryPaneRect.w - hotbarTotalW) / 2;
+	hotbarRect.x = (width - hotbarTotalW) / 2;
 	hotbarRect.y = inventoryPaneRect.y + inventoryPaneRect.h + 2;
 	hotbarRect.w = hotbarTotalW;
 	hotbarRect.h = ItemSize;
@@ -207,31 +216,35 @@ void ArmorScreen::render(int xm, int ym, float a) {
 	t.addOffset(0, 0, -490);
 	guiPlayerBg->draw(t, (float)guiPlayerBgRect.x, (float)guiPlayerBgRect.y);
 	t.addOffset(0, 0, 490);
-	renderPlayer((float)(guiPlayerBgRect.x + guiPlayerBgRect.w / 2), 0.85f * height);
+	{
+		float xo = (float)(guiPlayerBgRect.x + guiPlayerBgRect.w / 2);
+		// Model sits above yo; centre offset = 45*(heightOffset+0.9) = 113.4 px
+		float yo = (float)(guiPlayerBgRect.y + guiPlayerBgRect.h / 2) + 113.4f;
+		renderPlayer(xo, yo);
+	}
 
 	for (int i = 0; i < NUM_ARMORBUTTONS; ++i) {
 		drawSlotItemAt(t, i, player->getArmor(i), armorButtons[i]->x, armorButtons[i]->y);
 	}
 
-	// Hotbar row — draw separator line then 9 slots
+	// Hotbar row — draw 9 slots, then selection outline on top
 	{
-		glDisable2(GL_TEXTURE_2D);
-		fill((float)hotbarRect.x - 2, (float)(hotbarRect.y - 2),
-		     (float)(hotbarRect.x + hotbarRect.w) + 2, (float)(hotbarRect.y - 1), 0xff888888);
-		glEnable2(GL_TEXTURE_2D);
-
 		Inventory* inv = minecraft->player->inventory;
 		for (int i = 0; i < NUM_HOTBAR; ++i) {
 			int sx = hotbarRect.x + i * ItemSize;
 			int sy = hotbarRect.y;
-			ItemInstance* item = inv->getLinked(i);
-			// Highlight the selected hotbar slot
-			if (i == inv->selected) {
-				glDisable2(GL_TEXTURE_2D);
-				fill((float)sx, (float)sy, (float)(sx + ItemSize), (float)(sy + ItemSize), 0x44ffffff);
-				glEnable2(GL_TEXTURE_2D);
-			}
-			drawSlotItemAt(t, -1, item, sx, sy);
+			drawSlotItemAt(t, -1, inv->getLinked(i), sx, sy);
+		}
+		// 1px white border around the selected slot, drawn after all slots/items
+		int sel = inv->selected;
+		if (sel >= 0 && sel < NUM_HOTBAR) {
+			float sx = (float)(hotbarRect.x + sel * ItemSize);
+			float sy = (float)hotbarRect.y;
+			float ex = sx + ItemSize, ey = sy + ItemSize;
+			fill(sx-1, sy-1, ex+1, sy,   0xffffffff); // top
+			fill(sx-1, ey,   ex+1, ey+1, 0xffffffff); // bottom
+			fill(sx-1, sy,   sx,   ey,   0xffffffff); // left
+			fill(ex,   sy,   ex+1, ey,   0xffffffff); // right
 		}
 	}
 
@@ -251,6 +264,10 @@ void ArmorScreen::buttonClicked(Button* button) {
 	}
 	if (button == &btnCraft) {
 		minecraft->setScreen(new WorkbenchScreen(Recipe::SIZE_2X2));
+		return;
+	}
+	if (button == &btnItems) {
+		minecraft->screenChooser.setScreen(SCREEN_BLOCKSELECTION);
 		return;
 	}
 	if (button->id >= 0 && button->id <= 3) {

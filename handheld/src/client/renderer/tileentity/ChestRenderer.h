@@ -15,7 +15,7 @@ class ChestRenderer: public TileEntityRenderer
 
 private:
     ChestModel chestModel;
-    //LargeChestModel* largeChestModel;
+    LargeChestModel largeChestModel;
 };
 
 #endif /*NET_MINECRAFT_CLIENT_RENDERER_TILEENTITY__ChestRenderer_H__*/

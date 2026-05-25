@@ -1,5 +1,6 @@
 #include "ChestTile.h"
 #include "entity/ChestTileEntity.h"
+#include "entity/DoubleChestContainer.h"
 #include "../Level.h"
 #include "../material/Material.h"
 #include "../../Facing.h"
@@ -220,13 +221,11 @@ bool ChestTile::mayPlace( Level* level, int x, int y, int z, unsigned char face 
 	if (level->getTile(x, y, z - 1) == id) chestCount++;
 	if (level->getTile(x, y, z + 1) == id) chestCount++;
 
-	//@fullchest
-	if (chestCount > 0) return false;
-
-	//if (isFullChest(level, x - 1, y, z)) return false;
-	//if (isFullChest(level, x + 1, y, z)) return false;
-	//if (isFullChest(level, x, y, z - 1)) return false;
-	//if (isFullChest(level, x, y, z + 1)) return false;
+	if (chestCount > 1) return false;
+	if (isFullChest(level, x - 1, y, z)) return false;
+	if (isFullChest(level, x + 1, y, z)) return false;
+	if (isFullChest(level, x, y, z - 1)) return false;
+	if (isFullChest(level, x, y, z + 1)) return false;
 	return true;
 }
 
@@ -282,22 +281,26 @@ bool ChestTile::use( Level* level, int x, int y, int z, Player* player )
 
 	if (level->isSolidBlockingTile(x, y + 1, z)) return true;
 
-	// @fullchest
-	//if (level->getTile(x - 1, y, z) == id && (level->isSolidBlockingTile(x - 1, y + 1, z))) return true;
-	//if (level->getTile(x + 1, y, z) == id && (level->isSolidBlockingTile(x + 1, y + 1, z))) return true;
-	//if (level->getTile(x, y, z - 1) == id && (level->isSolidBlockingTile(x, y + 1, z - 1))) return true;
-	//if (level->getTile(x, y, z + 1) == id && (level->isSolidBlockingTile(x, y + 1, z + 1))) return true;
-
-	//if (level->getTile(x - 1, y, z) == id) container = /*new*/ CompoundContainer("Large chest", (ChestTileEntity) level->getTileEntity(x - 1, y, z), container);
-	//if (level->getTile(x + 1, y, z) == id) container = /*new*/ CompoundContainer("Large chest", container, (ChestTileEntity) level->getTileEntity(x + 1, y, z));
-	//if (level->getTile(x, y, z - 1) == id) container = /*new*/ CompoundContainer("Large chest", (ChestTileEntity) level->getTileEntity(x, y, z - 1), container);
-	//if (level->getTile(x, y, z + 1) == id) container = /*new*/ CompoundContainer("Large chest", container, (ChestTileEntity) level->getTileEntity(x, y, z + 1));
+	if (level->getTile(x - 1, y, z) == id && level->isSolidBlockingTile(x - 1, y + 1, z)) return true;
+	if (level->getTile(x + 1, y, z) == id && level->isSolidBlockingTile(x + 1, y + 1, z)) return true;
+	if (level->getTile(x, y, z - 1) == id && level->isSolidBlockingTile(x, y + 1, z - 1)) return true;
+	if (level->getTile(x, y, z + 1) == id && level->isSolidBlockingTile(x, y + 1, z + 1)) return true;
 
 	if (level->isClientSide) {
 		return true;
 	}
 
-	player->openContainer(chest);
+	ChestTileEntity* neighbor = NULL;
+	if (level->getTile(x - 1, y, z) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x - 1, y, z);
+	else if (level->getTile(x + 1, y, z) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x + 1, y, z);
+	else if (level->getTile(x, y, z - 1) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x, y, z - 1);
+	else if (level->getTile(x, y, z + 1) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x, y, z + 1);
+
+	if (neighbor != NULL) {
+		player->openContainer(new DoubleChestContainer(chest, neighbor));
+	} else {
+		player->openContainer(chest);
+	}
 
 	return true;
 }
@@ -309,13 +312,10 @@ TileEntity* ChestTile::newTileEntity()
 
 bool ChestTile::isFullChest( Level* level, int x, int y, int z )
 {
-	return false; //@fullchest
-	/*
 	if (level->getTile(x, y, z) != id) return false;
 	if (level->getTile(x - 1, y, z) == id) return true;
 	if (level->getTile(x + 1, y, z) == id) return true;
 	if (level->getTile(x, y, z - 1) == id) return true;
 	if (level->getTile(x, y, z + 1) == id) return true;
 	return false;
-	*/
 }

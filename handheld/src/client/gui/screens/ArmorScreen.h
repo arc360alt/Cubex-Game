@@ -63,6 +63,7 @@ private:
 	float descWidth;
 	ImageButton btnClose;
 	Touch::TButton btnCraft;
+	Touch::TButton btnItems;
 
 	BlankButton btnArmor0;
 	BlankButton btnArmor1;

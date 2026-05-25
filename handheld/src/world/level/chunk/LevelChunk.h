@@ -105,7 +105,7 @@ private:
 
 	void recalcHeight(int x, int yStart, int z);
 public:
-    static bool touchedSky;
+    static thread_local bool touchedSky;
 	static const int ChunkBlockCount = CHUNK_BLOCK_COUNT;
 	static const int ChunkSize = ChunkBlockCount;
 	static const int UpdateMapBitShift = 4; // power of (LEVEL_HEIGHT / 8) == 16
