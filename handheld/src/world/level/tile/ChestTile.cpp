@@ -290,14 +290,24 @@ bool ChestTile::use( Level* level, int x, int y, int z, Player* player )
 		return true;
 	}
 
-	ChestTileEntity* neighbor = NULL;
-	if (level->getTile(x - 1, y, z) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x - 1, y, z);
-	else if (level->getTile(x + 1, y, z) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x + 1, y, z);
-	else if (level->getTile(x, y, z - 1) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x, y, z - 1);
-	else if (level->getTile(x, y, z + 1) == id) neighbor = (ChestTileEntity*) level->getTileEntity(x, y, z + 1);
+	ChestTileEntity* primary = chest;
+	ChestTileEntity* secondary = NULL;
 
-	if (neighbor != NULL) {
-		player->openContainer(new DoubleChestContainer(chest, neighbor));
+	// Canonicalize: west(x-1) or north(z-1) is always primary so slot order never depends on which half was clicked.
+	if (level->getTile(x - 1, y, z) == id) {
+		secondary = (ChestTileEntity*) level->getTileEntity(x - 1, y, z);
+		std::swap(primary, secondary); // neighbor at x-1 is west → make it primary
+	} else if (level->getTile(x + 1, y, z) == id) {
+		secondary = (ChestTileEntity*) level->getTileEntity(x + 1, y, z);
+	} else if (level->getTile(x, y, z - 1) == id) {
+		secondary = (ChestTileEntity*) level->getTileEntity(x, y, z - 1);
+		std::swap(primary, secondary); // neighbor at z-1 is north → make it primary
+	} else if (level->getTile(x, y, z + 1) == id) {
+		secondary = (ChestTileEntity*) level->getTileEntity(x, y, z + 1);
+	}
+
+	if (secondary != NULL) {
+		player->openContainer(new DoubleChestContainer(primary, secondary));
 	} else {
 		player->openContainer(chest);
 	}

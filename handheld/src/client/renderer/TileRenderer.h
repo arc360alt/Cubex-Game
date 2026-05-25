@@ -69,6 +69,7 @@ private:
 	Tesselator* _tess;
 	int fixedTexture;
 	bool xFlipTexture;
+	bool uvRotateTexture;
 	bool noCulling;
 
 	bool applyAmbienceOcclusion;

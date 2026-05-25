@@ -5,10 +5,10 @@
 
 #if defined(ANDROID) && !defined(PRE_ANDROID23)
 	#include "../../platform/audio/SoundSystemSL.h"
-#elif defined(__APPLE__)
-    #include "../../platform/audio/SoundSystemAL.h"
-#else
+#elif defined(RPI)
 	#include "../../platform/audio/SoundSystem.h"
+#else
+    #include "../../platform/audio/SoundSystemAL.h"
 #endif
 #include "SoundRepository.h"
 #include "../../util/Random.h"
@@ -21,12 +21,12 @@ class SoundEngine
 {
     static const int SOUND_DISTANCE = 16;
 
-	#if defined(ANDROID) && !defined(PRE_ANDROID23) && !defined(RPI)
+	#if defined(ANDROID) && !defined(PRE_ANDROID23)
 		SoundSystemSL soundSystem;
-    #elif defined(__APPLE__)
-        SoundSystemAL soundSystem;
-	#else
+	#elif defined(RPI)
 	    SoundSystem soundSystem;
+	#else
+        SoundSystemAL soundSystem;
 	#endif
 
 	Options* options;

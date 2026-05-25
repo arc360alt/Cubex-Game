@@ -12,6 +12,7 @@
 #include "../../world/level/tile/BedTile.h"
 #include "../../world/level/tile/StemTile.h"
 #include "../../world/level/tile/StairTile.h"
+#include "../../world/level/tile/TreeTile.h"
 #include "../../world/Direction.h"
 #include "../../world/Facing.h"
 #include "tileentity/TileEntityRenderer.h"
@@ -22,6 +23,7 @@ TileRenderer::TileRenderer( LevelSource* level /* = NULL */ )
 	_tess(&Tesselator::instance),
 	fixedTexture(-1),
 	xFlipTexture(false),
+	uvRotateTexture(false),
 	noCulling(false),
 	blsmooth(1),
 	applyAmbienceOcclusion(false)
@@ -79,10 +81,19 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 
 	float centerBrightness = tt->getBrightness(level, x, y, z);
 
+	// Determine log axis for UV rotation (side faces of horizontal logs show rotated grain).
+	int logAxis = TreeTile::AXIS_Y;
+	if (tt == Tile::treeTrunk && level) {
+		int d = level->getData(x, y, z);
+		logAxis = (d & TreeTile::AXIS_MASK) >> 2;
+	}
+
 	if (noCulling || tt->shouldRenderFace(level, x, y - 1, z, Facing::DOWN)) {
 		float br = tt->getBrightness(level, x, y - 1, z);
 		t.color(r10 * br, g10 * br, b10 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderFaceDown(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 0));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -90,7 +101,9 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 		float br = tt->getBrightness(level, x, y + 1, z);
 		if (tt->yy1 != 1 && !tt->material->isLiquid()) br = centerBrightness;
 		t.color(r11 * br, g11 * br, b11 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderFaceUp(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 1));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -98,7 +111,9 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 		float br = tt->getBrightness(level, x, y, z - 1);
 		if (tt->zz0 > 0) br = centerBrightness;
 		t.color(r2 * br, g2 * br, b2 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderNorth(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 2));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -106,7 +121,9 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 		float br = tt->getBrightness(level, x, y, z + 1);
 		if (tt->zz1 < 1) br = centerBrightness;
 		t.color(r2 * br, g2 * br, b2 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderSouth(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 3));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -114,7 +131,9 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 		float br = tt->getBrightness(level, x - 1, y, z);
 		if (tt->xx0 > 0) br = centerBrightness;
 		t.color(r3 * br, g3 * br, b3 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_Z);
 		renderWest(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 4));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -122,7 +141,9 @@ bool TileRenderer::tesselateBlockInWorld( Tile* tt, int x, int y, int z, float r
 		float br = tt->getBrightness(level, x + 1, y, z);
 		if (tt->xx1 < 1) br = centerBrightness;
 		t.color(r3 * br, g3 * br, b3 * br);
+		uvRotateTexture = (logAxis == TreeTile::AXIS_Z);
 		renderEast(tt, xf, yf, zf, tt->getTexture(level, x, y, z, 5));
+		uvRotateTexture = false;
 		changed = true;
 	}
 
@@ -763,6 +784,12 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 
 	if (tt->tex == 3) tint0 = tint2 = tint3 = tint4 = tint5 = false;
 
+	int logAxis = TreeTile::AXIS_Y;
+	if (tt == Tile::treeTrunk && level) {
+		int d = level->getData(pX, pY, pZ);
+		logAxis = (d & TreeTile::AXIS_MASK) >> 2;
+	}
+
 	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY - 1, pZ, 0))) {
 		if (blsmooth > 0) {
 			pY--;
@@ -815,7 +842,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4g *= ll4;
 		c4b *= ll4;
 
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderFaceDown(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 0));
+		uvRotateTexture = false;
 		i = true;
 	}
 	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY + 1, pZ, 1))) {
@@ -869,7 +898,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4r *= ll4;
 		c4g *= ll4;
 		c4b *= ll4;
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderFaceUp(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 1));
+		uvRotateTexture = false;
 		i = true;
 	}
 	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY, pZ - 1, 2))) {
@@ -921,7 +952,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4r *= ll4;
 		c4g *= ll4;
 		c4b *= ll4;
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderNorth(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 2));
+		uvRotateTexture = false;
 		i = true;
 	}
 	if ((noCulling) || (tt->shouldRenderFace(level, pX, pY, pZ + 1, 3))) {
@@ -974,7 +1007,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4r *= ll4;
 		c4g *= ll4;
 		c4b *= ll4;
+		uvRotateTexture = (logAxis == TreeTile::AXIS_X);
 		renderSouth(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 3));
+		uvRotateTexture = false;
 		i = true;
 	}
 	if ((noCulling) || (tt->shouldRenderFace(level, pX - 1, pY, pZ, 4))) {
@@ -1026,7 +1061,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4r *= ll4;
 		c4g *= ll4;
 		c4b *= ll4;
+		uvRotateTexture = (logAxis == TreeTile::AXIS_Z);
 		renderWest(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 4));
+		uvRotateTexture = false;
 		i = true;
 	}
 	if ((noCulling) || (tt->shouldRenderFace(level, pX + 1, pY, pZ, 5))) {
@@ -1079,7 +1116,9 @@ bool TileRenderer::tesselateBlockInWorldWithAmbienceOcclusion( Tile* tt, int pX,
 		c4g *= ll4;
 		c4b *= ll4;
 
+		uvRotateTexture = (logAxis == TreeTile::AXIS_Z);
 		renderEast(tt, (float) pX, (float) pY, (float) pZ, tt->getTexture(level, pX, pY, pZ, 5));
+		uvRotateTexture = false;
 		i = true;
 	}
 	applyAmbienceOcclusion = false;
@@ -1769,7 +1808,23 @@ void TileRenderer::renderFaceDown( Tile* tt, float x, float y, float z, int tex 
 	float z0 = z + tt->zz0;
 	float z1 = z + tt->zz1;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x0, y0, z1, u1, v1);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x0, y0, z0, u0, v1);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x1, y0, z0, u0, v0);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x1, y0, z1, u1, v0);
+		} else {
+			t.vertexUV(x0, y0, z1, u1, v1);
+			t.vertexUV(x0, y0, z0, u0, v1);
+			t.vertexUV(x1, y0, z0, u0, v0);
+			t.vertexUV(x1, y0, z1, u1, v0);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x0, y0, z1, u0, v1);
 		t.color(c2r, c2g, c2b);
@@ -1814,7 +1869,23 @@ void TileRenderer::renderFaceUp( Tile* tt, float x, float y, float z, int tex )
 	float z0 = z + tt->zz0;
 	float z1 = z + tt->zz1;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x1, y1, z1, u1, v0);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x1, y1, z0, u0, v0);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x0, y1, z0, u0, v1);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x0, y1, z1, u1, v1);
+		} else {
+			t.vertexUV(x1, y1, z1, u1, v0);
+			t.vertexUV(x1, y1, z0, u0, v0);
+			t.vertexUV(x0, y1, z0, u0, v1);
+			t.vertexUV(x0, y1, z1, u1, v1);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x1, y1, z1, u1, v1);
 		t.color(c2r, c2g, c2b);
@@ -1863,7 +1934,23 @@ void TileRenderer::renderNorth( Tile* tt, float x, float y, float z, int tex )
 	float y1 = y + tt->yy1;
 	float z0 = z + tt->zz0;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x0, y1, z0, u1, v1);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x1, y1, z0, u1, v0);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x1, y0, z0, u0, v0);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x0, y0, z0, u0, v1);
+		} else {
+			t.vertexUV(x0, y1, z0, u1, v1);
+			t.vertexUV(x1, y1, z0, u1, v0);
+			t.vertexUV(x1, y0, z0, u0, v0);
+			t.vertexUV(x0, y0, z0, u0, v1);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x0, y1, z0, u1, v0);
 		t.color(c2r, c2g, c2b);
@@ -1913,7 +2000,23 @@ void TileRenderer::renderSouth( Tile* tt, float x, float y, float z, int tex )
 	float y1 = y + tt->yy1;
 	float z1 = z + tt->zz1;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x0, y1, z1, u1, v0);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x0, y0, z1, u0, v0);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x1, y0, z1, u0, v1);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x1, y1, z1, u1, v1);
+		} else {
+			t.vertexUV(x0, y1, z1, u1, v0);
+			t.vertexUV(x0, y0, z1, u0, v0);
+			t.vertexUV(x1, y0, z1, u0, v1);
+			t.vertexUV(x1, y1, z1, u1, v1);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x0, y1, z1, u0, v0);
 		t.color(c2r, c2g, c2b);
@@ -1963,7 +2066,23 @@ void TileRenderer::renderWest( Tile* tt, float x, float y, float z, int tex )
 	float z0 = z + tt->zz0;
 	float z1 = z + tt->zz1;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x0, y1, z1, u1, v1);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x0, y1, z0, u1, v0);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x0, y0, z0, u0, v0);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x0, y0, z1, u0, v1);
+		} else {
+			t.vertexUV(x0, y1, z1, u1, v1);
+			t.vertexUV(x0, y1, z0, u1, v0);
+			t.vertexUV(x0, y0, z0, u0, v0);
+			t.vertexUV(x0, y0, z1, u0, v1);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x0, y1, z1, u1, v0);
 		t.color(c2r, c2g, c2b);
@@ -2013,7 +2132,23 @@ void TileRenderer::renderEast( Tile* tt, float x, float y, float z, int tex )
 	float z0 = z + tt->zz0;
 	float z1 = z + tt->zz1;
 
-	if (applyAmbienceOcclusion) {
+	if (uvRotateTexture) {
+		if (applyAmbienceOcclusion) {
+			t.color(c1r, c1g, c1b);
+			t.vertexUV(x1, y0, z1, u0, v0);
+			t.color(c2r, c2g, c2b);
+			t.vertexUV(x1, y0, z0, u0, v1);
+			t.color(c3r, c3g, c3b);
+			t.vertexUV(x1, y1, z0, u1, v1);
+			t.color(c4r, c4g, c4b);
+			t.vertexUV(x1, y1, z1, u1, v0);
+		} else {
+			t.vertexUV(x1, y0, z1, u0, v0);
+			t.vertexUV(x1, y0, z0, u0, v1);
+			t.vertexUV(x1, y1, z0, u1, v1);
+			t.vertexUV(x1, y1, z1, u1, v0);
+		}
+	} else if (applyAmbienceOcclusion) {
 		t.color(c1r, c1g, c1b);
 		t.vertexUV(x1, y0, z1, u0, v1);
 		t.color(c2r, c2g, c2b);

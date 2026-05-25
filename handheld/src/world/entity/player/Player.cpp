@@ -582,6 +582,18 @@ void Player::readAdditionalSaveData(CompoundTag* entityTag) {
 	LOGI("[Player] readAdditionalSaveData called: this=%p, inventory ptr=%p", this, inventory);
 	super::readAdditionalSaveData(entityTag);
 
+	if (level) {
+		int px = (int)x, py = (int)y, pz = (int)z;
+		if (level->isSolidBlockingTile(px, py, pz) || level->isSolidBlockingTile(px, py + 1, pz)) {
+			for (int scanY = py + 1; scanY < LEVEL_HEIGHT - 1; scanY++) {
+				if (!level->isSolidBlockingTile(px, scanY, pz) && !level->isSolidBlockingTile(px, scanY + 1, pz)) {
+					setPos(x, (float)scanY, z);
+					break;
+				}
+			}
+		}
+	}
+
 	   bool loadedInventory = false;
 	   if (entityTag->contains("Inventory", Tag::TAG_List)) {
 		   ListTag* inventoryList = entityTag->getList("Inventory");

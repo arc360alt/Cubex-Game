@@ -2,6 +2,7 @@
 #include "../material/Material.h"
 #include "../Level.h"
 #include "LevelEvent.h"
+#include <cmath>
 TrapDoorTile::TrapDoorTile( int id, const Material* material ) : super(id, material) {
 	tex = 4 + 5 * 16;
 	if(material == Material::metal) tex++;
@@ -89,16 +90,25 @@ void TrapDoorTile::neighborChanged( Level* level, int x, int y, int z, int type 
 	if (level->isClientSide) return;
 
 	int data = level->getData(x, y, z);
-	int xt = x;
-	int zt = z;
-	if ((data & 3) == 0) zt++;
-	if ((data & 3) == 1) zt--;
-	if ((data & 3) == 2) xt++;
-	if ((data & 3) == 3) xt--;
 
-	if (!attachesTo(level->getTile(xt, y, zt))) {
-		level->setTile(x, y, z, 0);
-		popResource(level, x, y, z, ItemInstance(Tile::trapdoor));
+	if (data & 8) {
+		// Floor-placed: survives as long as the block below is solid
+		if (!attachesTo(level->getTile(x, y - 1, z))) {
+			level->setTile(x, y, z, 0);
+			popResource(level, x, y, z, ItemInstance(Tile::trapdoor));
+		}
+	} else {
+		int xt = x;
+		int zt = z;
+		if ((data & 3) == 0) zt++;
+		if ((data & 3) == 1) zt--;
+		if ((data & 3) == 2) xt++;
+		if ((data & 3) == 3) xt--;
+
+		if (!attachesTo(level->getTile(xt, y, zt))) {
+			level->setTile(x, y, z, 0);
+			popResource(level, x, y, z, ItemInstance(Tile::trapdoor));
+		}
 	}
 
 	bool signal = level->hasNeighborSignal(x, y, z);
@@ -121,6 +131,16 @@ int TrapDoorTile::getDir( int dir ) {
 }
 
 int TrapDoorTile::getPlacedOnFaceDataValue(Level* level, int x, int y, int z, int face, float clickX, float clickY, float clickZ, int itemValue) {
+	if (face == 1) {
+		float dx = clickX - 0.5f;
+		float dz = clickZ - 0.5f;
+		int dir;
+		if (fabsf(dz) >= fabsf(dx))
+			dir = (dz >= 0) ? 0 : 1;
+		else
+			dir = (dx >= 0) ? 2 : 3;
+		return 8 | dir;
+	}
 	int dir = 0;
 	if (face == 2) dir = 0;
 	if (face == 3) dir = 1;
@@ -131,7 +151,7 @@ int TrapDoorTile::getPlacedOnFaceDataValue(Level* level, int x, int y, int z, in
 
 bool TrapDoorTile::mayPlace( Level* level, int x, int y, int z, unsigned char face) {
 	if (face == 0) return false;
-	if (face == 1) return false;
+	if (face == 1) return attachesTo(level->getTile(x, y - 1, z));
 	if (face == 2) z++;
 	if (face == 3) z--;
 	if (face == 4) x++;
