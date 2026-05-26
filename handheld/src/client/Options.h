@@ -49,6 +49,7 @@ public:
 		static const Option USE_TOUCH_JOYPAD;
 		static const Option DESTROY_VIBRATION;
 		static const Option AUTO_JUMP;
+		static const Option ALEX_SKIN;
 
 		static const Option PIXELS_PER_MILLIMETER;
 		static const Option FOV;
@@ -124,6 +125,7 @@ public:
 	bool isLeftHanded;
 	bool destroyVibration;
 	bool autoJump;
+	bool alexSkin;
 	bool enableVsync;
 	int maxFps;
     //std::string skin;
@@ -257,6 +259,7 @@ public:
 		if (option == &Option::USE_TOUCH_JOYPAD) isJoyTouchArea = !isJoyTouchArea;
 		if (option == &Option::DESTROY_VIBRATION) destroyVibration = !destroyVibration;
 		if (option == &Option::AUTO_JUMP) autoJump = !autoJump;
+		if (option == &Option::ALEX_SKIN) alexSkin = !alexSkin;
 		if (option == &Option::ANAGLYPH) {
             anaglyph3d = !anaglyph3d;
             //minecraft->textures.reloadAll();
@@ -339,6 +342,8 @@ public:
 			return destroyVibration;
 		if (item == &Option::AUTO_JUMP)
 			return autoJump;
+		if (item == &Option::ALEX_SKIN)
+			return alexSkin;
 		return false;
 	}
 

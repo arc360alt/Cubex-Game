@@ -129,6 +129,7 @@ disconnect.overflow=Buffer overflow
 
 options.off=OFF
 options.group.skin=Skin
+options.alexSkin=Alex Skin (3px arms)
 options.on=ON
 options.title=Options
 options.controls=Controls...

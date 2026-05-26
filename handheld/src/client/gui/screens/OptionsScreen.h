@@ -5,6 +5,7 @@
 #include "../components/Button.h"
 
 class ImageButton;
+class OptionButton;
 class OptionsPane;
 
 class OptionsScreen: public Screen
@@ -34,6 +35,7 @@ private:
 	std::vector<OptionsPane*> optionPanes;
 	OptionsPane* currentOptionPane;
 	Button* btnBrowseSkin;
+	OptionButton* btnAlexSkin;
 	TextBox* txtUsername;
 	int selectedCategory;
 

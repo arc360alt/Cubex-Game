@@ -21,6 +21,7 @@ void Options::initDefaultValues() {
 	flySpeed = 1;
 	cameraSpeed = 1;
 	skinPath = "";
+	alexSkin = false;
 	guiScale = 0;
 
 	useMouseForDigging = false;
@@ -171,7 +172,8 @@ const Options::Option
 	Options::Option::DESTROY_VIBRATION   (18, "options.destroyvibration", false, true),
 	Options::Option::PIXELS_PER_MILLIMETER(19, "options.pixelspermilimeter", true, false),
 	Options::Option::FOV                  (20, "options.fov",               true, false),
-	Options::Option::AUTO_JUMP           (21, "options.autojump",          false, true);
+	Options::Option::AUTO_JUMP           (21, "options.autojump",          false, true),
+	Options::Option::ALEX_SKIN           (24, "options.alexSkin",          false, true);
 
 /* private */
 const float Options::SOUND_MIN_VALUE = 0.0f;
@@ -291,6 +293,9 @@ void Options::update()
 		}
 		if (key == OptionStrings::Controls_AutoJump) {
 			readBool(value, autoJump);
+		}
+		if (key == "game.alexSkin") {
+			readBool(value, alexSkin);
 		}
 
 		// Feedback
@@ -431,6 +436,7 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_UseTouchJoypad, isJoyTouchArea);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_FeedbackVibration, destroyVibration);
 	addOptionToSaveOutput(stringVec, OptionStrings::Controls_AutoJump, autoJump);
+	addOptionToSaveOutput(stringVec, "game.alexSkin", alexSkin);
 
 	// Graphics
 	addOptionToSaveOutput(stringVec, OptionStrings::Graphics_Fancy, fancyGraphics);

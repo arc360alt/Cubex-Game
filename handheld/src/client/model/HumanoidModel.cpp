@@ -3,9 +3,14 @@
 #include "../../util/Mth.h"
 #include "../../world/entity/player/Player.h"
 #include "../../world/entity/player/Inventory.h"
+#include "../renderer/entity/EntityRenderDispatcher.h"
+#include "../Options.h"
 
 HumanoidModel::HumanoidModel( float g /*= 0*/, float yOffset /*= 0*/ )
-:	holdingLeftHand(false),
+:	g_val(g),
+	yOffset_val(yOffset),
+	lastSkinType(0),
+	holdingLeftHand(false),
 	holdingRightHand(false),
 	sneaking(false),
 	bowAndArrow(false),
@@ -51,8 +56,50 @@ HumanoidModel::HumanoidModel( float g /*= 0*/, float yOffset /*= 0*/ )
 	leg1.setPos(2, 12 + yOffset, 0);
 }
 
+void HumanoidModel::reinitArms(bool isAlex) {
+	arm0.clear();
+	arm1.clear();
+
+	arm0.setModel(this);
+	arm1.setModel(this);
+
+	arm1.mirror = true;
+
+	if (isAlex) {
+		arm0.texOffs(40, 16);
+		arm1.texOffs(40, 16);
+
+		arm0.addBox(-2.0f, -2.0f, -2.0f, 3, 12, 4, g_val);
+		arm0.setPos(-5.0f, 2.5f + yOffset_val, 0.0f);
+
+		arm1.addBox(-1.0f, -2.0f, -2.0f, 3, 12, 4, g_val);
+		arm1.setPos(5.0f, 2.5f + yOffset_val, 0.0f);
+	} else {
+		arm0.texOffs(40, 16);
+		arm1.texOffs(40, 16);
+
+		arm0.addBox(-3.0f, -2.0f, -2.0f, 4, 12, 4, g_val);
+		arm0.setPos(-5.0f, 2.0f + yOffset_val, 0.0f);
+
+		arm1.addBox(-1.0f, -2.0f, -2.0f, 4, 12, 4, g_val);
+		arm1.setPos(5.0f, 2.0f + yOffset_val, 0.0f);
+	}
+}
+
+void HumanoidModel::checkSkinType() {
+	EntityRenderDispatcher* erd = EntityRenderDispatcher::getInstance();
+	if (erd && erd->options) {
+		int currentSkinType = erd->options->alexSkin ? 1 : 0;
+		if (currentSkinType != lastSkinType) {
+			reinitArms(currentSkinType == 1);
+			lastSkinType = currentSkinType;
+		}
+	}
+}
+
 void HumanoidModel::render(Entity* e, float time, float r, float bob, float yRot, float xRot, float scale )
 {
+	checkSkinType();
 	if(e != NULL && e->isMob()) {		
 		Mob* mob = (Mob*)(e);
 		ItemInstance* item = mob->getCarriedItem();
@@ -80,6 +127,7 @@ void HumanoidModel::render(Entity* e, float time, float r, float bob, float yRot
 
 void HumanoidModel::render( HumanoidModel* model, float scale )
 {
+	checkSkinType();
 	head.yRot = model->head.yRot;
 	head.y = model->head.y;
 	head.xRot = model->head.xRot;
@@ -106,6 +154,7 @@ void HumanoidModel::render( HumanoidModel* model, float scale )
 
 void HumanoidModel::renderHorrible( float time, float r, float bob, float yRot, float xRot, float scale )
 {
+	checkSkinType();
 	setupAnim(time, r, bob, yRot, xRot, scale);
 	head.renderHorrible(scale);
 	body.renderHorrible(scale);

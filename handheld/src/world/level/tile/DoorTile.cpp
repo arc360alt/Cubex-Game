@@ -165,7 +165,7 @@ void DoorTile::neighborChanged(Level* level, int x, int y, int z, int type) {
 		}
 		if (spawn) {
 			if (!level->isClientSide) {
-				spawnResources(level, x, y, z, data, 0);
+				spawnResources(level, x, y, z, data, 1.0f);
 			}
 		} else {
 			bool signal = level->hasNeighborSignal(x, y, z) || level->hasNeighborSignal(x, y + 1, z);
@@ -174,13 +174,9 @@ void DoorTile::neighborChanged(Level* level, int x, int y, int z, int type) {
 			}
 		}
 	} else {
+		// Top half: just remove silently; bottom half handles the item drop
 		if (level->getTile(x, y - 1, z) != id) {
 			level->setTile(x, y, z, 0);
-			if(material == Material::metal) {
-				popResource(level, x, y, z, ItemInstance(Item::door_iron));
-			} else {
-				popResource(level, x, y, z, ItemInstance(Item::door_wood));
-			}
 		}
 		if (type > 0 && type != id) {
 			neighborChanged(level, x, y - 1, z, type);

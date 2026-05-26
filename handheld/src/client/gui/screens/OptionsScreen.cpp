@@ -64,6 +64,7 @@ OptionsScreen::OptionsScreen()
 : btnClose(NULL),
   bHeader(NULL),
   btnBrowseSkin(NULL),
+  btnAlexSkin(NULL),
   currentOptionPane(NULL),
   selectedCategory(0),
   _catScrollY(0),
@@ -101,6 +102,7 @@ OptionsScreen::~OptionsScreen() {
 	optionPanes.clear();
 	currentOptionPane = NULL;
 	if (btnBrowseSkin) { delete btnBrowseSkin; btnBrowseSkin = NULL; }
+	if (btnAlexSkin) { delete btnAlexSkin; btnAlexSkin = NULL; }
 }
 
 void OptionsScreen::init() {
@@ -114,7 +116,19 @@ void OptionsScreen::init() {
 	btnBrowseSkin = new Button(10, "Browse Skin...");
 	btnBrowseSkin->width = 120;
 	btnBrowseSkin->height = 24;
-	btnBrowseSkin->visible = false; 
+	btnBrowseSkin->visible = false;
+
+	{
+		ImageDef alexDef;
+		alexDef.setSrc(IntRectangle(160, 206, 39, 20));
+		alexDef.name = "gui/touchgui.png";
+		alexDef.width = 39 * 0.7f;
+		alexDef.height = 20 * 0.7f;
+		btnAlexSkin = new OptionButton(&Options::Option::ALEX_SKIN);
+		btnAlexSkin->setImageDef(alexDef, true);
+		btnAlexSkin->updateImage(&minecraft->options);
+		btnAlexSkin->visible = false;
+	} 
 
 	txtUsername = new TextBox(11, "");
 	txtUsername->text = minecraft->options.username;
@@ -182,6 +196,11 @@ void OptionsScreen::setupPositions() {
 		int headerH2 = (bHeader != NULL) ? bHeader->height : 26;
 		btnBrowseSkin->x = catW2 + 6;
 		btnBrowseSkin->y = headerH2 + 110;
+	}
+	if (btnAlexSkin) {
+		int headerH2 = (bHeader != NULL) ? bHeader->height : 26;
+		btnAlexSkin->x = width - 36;
+		btnAlexSkin->y = headerH2 + 140;
 	}
 	if (txtUsername) {
 		int catW2 = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
@@ -261,7 +280,12 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 		minecraft->font->drawShadow("[Press R to reload skin]", (float)(catW + 6), (float)(headerH + 94), 0xffcccccc);
 	}
 	if (selectedCategory == 4 && btnBrowseSkin && btnBrowseSkin->visible)
-    btnBrowseSkin->render(minecraft, xm, ym);
+    	btnBrowseSkin->render(minecraft, xm, ym);
+
+	if (selectedCategory == 4 && btnAlexSkin && btnAlexSkin->visible) {
+		btnAlexSkin->render(minecraft, xm, ym);
+		minecraft->font->drawShadow(I18n::get("options.alexSkin"), (float)(catW + 6), (float)(btnAlexSkin->y + 6), 0xe0e0e0);
+	}
 
 	if (selectedCategory == 4 && txtUsername) {
     minecraft->font->drawShadow("Username:", (float)txtUsername->x, (float)(txtUsername->y - 10), 0xffffffff);
@@ -332,6 +356,8 @@ void OptionsScreen::selectCategory( int index ) {
 
     if (btnBrowseSkin)
         btnBrowseSkin->visible = (selectedCategory == 4);
+    if (btnAlexSkin)
+        btnAlexSkin->visible = (selectedCategory == 4);
 }
 
 void OptionsScreen::keyPressed(int key) {
@@ -396,7 +422,7 @@ void OptionsScreen::generateOptionScreens() {
 		.addOptionItem(&Options::Option::VIEW_BOBBING, minecraft)
 		.addOptionItem(&Options::Option::FOV, minecraft);
 	
-	optionPanes[4]->createOptionsGroup("options.group.skin");
+	// Skin options are rendered directly in render(), not via the pane
 // 	int mojangGroup = optionPanes[0]->createOptionsGroup("Mojang");
 // 	static const int arr[] = {5,4,3,15};
 // 	std::vector<int> vec (arr, arr + sizeof(arr) / sizeof(arr[0]) );
@@ -468,6 +494,16 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
         if (x >= btnBrowseSkin->x && x < btnBrowseSkin->x + btnBrowseSkin->width &&
             y >= btnBrowseSkin->y && y < btnBrowseSkin->y + btnBrowseSkin->height) {
             buttonClicked(btnBrowseSkin);
+            clickedButton = NULL;
+            return;
+        }
+    }
+
+    // Manual hit-test for btnAlexSkin
+    if (btnAlexSkin && btnAlexSkin->visible && buttonNum == 1) {
+        if (x >= btnAlexSkin->x && x < btnAlexSkin->x + btnAlexSkin->width &&
+            y >= btnAlexSkin->y && y < btnAlexSkin->y + btnAlexSkin->height) {
+            btnAlexSkin->toggle(&minecraft->options);
             clickedButton = NULL;
             return;
         }
