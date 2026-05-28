@@ -24,6 +24,10 @@ public:
     virtual void stop(const std::string& name){}
 
 	virtual void playAt(const SoundDesc& desc, float x, float y, float z, float volume, float pitch){}
+
+    virtual void playMusic(const char*, int, int, int, int, float){}
+    virtual void stopMusic(){}
+    virtual bool isMusicPlaying(){ return false; }
 };
 
 #endif /*SoundSystem_H__ */

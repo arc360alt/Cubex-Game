@@ -5,7 +5,7 @@
 
 #if defined(ANDROID) && !defined(PRE_ANDROID23)
 	#include "../../platform/audio/SoundSystemSL.h"
-#elif defined(RPI)
+#elif defined(RPI) || defined(_WIN32)
 	#include "../../platform/audio/SoundSystem.h"
 #else
     #include "../../platform/audio/SoundSystemAL.h"
@@ -25,7 +25,7 @@ class SoundEngine
 
 	#if defined(ANDROID) && !defined(PRE_ANDROID23)
 		SoundSystemSL soundSystem;
-	#elif defined(RPI)
+	#elif defined(RPI) || defined(_WIN32)
 	    SoundSystem soundSystem;
 	#else
         SoundSystemAL soundSystem;
