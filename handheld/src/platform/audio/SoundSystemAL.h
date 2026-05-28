@@ -41,6 +41,11 @@ public:
     virtual void stop(const std::string& name){}
 	virtual void playAt(const SoundDesc& sound, float x, float y, float z, float volume, float pitch);
 
+    // Background music (non-positional, single dedicated source)
+    void playMusic(const char* pcmData, int size, int channels, int sampleRate, int byteWidth, float volume);
+    void stopMusic();
+    bool isMusicPlaying();
+
 private:
     class Buffer {
     public:
@@ -68,6 +73,9 @@ private:
     
     ALuint _sources[MaxNumSources];
     std::vector<Buffer> _buffers;
+
+    ALuint _musicSource;
+    ALuint _musicBuffer;
 
     bool getFreeSourceIndex(int* src);
     bool getBufferId(const SoundDesc& sound, ALuint* buf);

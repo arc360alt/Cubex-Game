@@ -33,3 +33,7 @@ If the issue your having is on that list, dont report it, ill eventualy get to f
 # Docs:
 - [How to build PE Reborn](Building.md)
 - [Extra notes](Extra-Notes.md)
+
+# Credits:
+- C418: Backround soundtrakcs (Note to self: Replace with diffrent soundtracks as i dont want to be copyright struck by using these in the production builds)
+- Mojang: Textures, Sounds, and the original code of the game.

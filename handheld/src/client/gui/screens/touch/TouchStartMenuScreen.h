@@ -44,6 +44,8 @@ private:
 
 	std::string version;
 	int versionPosX;
+
+	std::string splash;
 };
 };
 

@@ -12,6 +12,8 @@
 #endif
 #include "SoundRepository.h"
 #include "../../util/Random.h"
+#include <vector>
+#include <string>
 
 class Minecraft;
 class Mob;
@@ -60,9 +62,26 @@ public:
 private:
 	void loadLibrary() {}
     SoundDesc _pp(const std::string& fn);
-    
+
 	SoundRepository sounds;
 	Minecraft* mc;
+
+#if !defined(ANDROID) && !defined(RPI)
+    // Background music
+    struct MusicTrack {
+        char* data;
+        int size, channels, sampleRate, byteWidth;
+    };
+    std::vector<MusicTrack> _musicTracks;
+    int  _musicTrackIdx;
+    bool _musicWasInWorld;
+    long long _musicCooldownEndMs; // -1 = track just ended, awaiting next cooldown
+
+    void _initMusic();
+    void _tickMusic(bool inWorld);
+    void _playNextMusicTrack();
+    static bool _loadWav(const char* path, MusicTrack& out);
+#endif
 };
 
 #endif /*NET_MINECRAFT_CLIENT_SOUND__SoundEngine_H__*/

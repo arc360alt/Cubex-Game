@@ -2,7 +2,10 @@
 #include "../Options.h"
 #include "../Minecraft.h"
 #include "../../world/entity/Mob.h"
-
+#include "../../platform/time.h"
+#include <cstdio>
+#include <cstring>
+#include <cstdint>
 
 SoundEngine::SoundEngine( float maxDistance )
 :	idCounter(0),
@@ -12,6 +15,11 @@ SoundEngine::SoundEngine( float maxDistance )
 	_z(0),
 	_yRot(0),
 	_invMaxDistance(1.0f / maxDistance)
+#if !defined(ANDROID) && !defined(RPI)
+    ,_musicTrackIdx(0)
+    ,_musicWasInWorld(false)
+    ,_musicCooldownEndMs(0)
+#endif
 {
 
 }
@@ -144,6 +152,10 @@ void SoundEngine::init( Minecraft* mc, Options* options )
 	sounds.add("random.fuse", SA_fuse);
 
 #endif
+
+#if !defined(ANDROID) && !defined(RPI)
+    _initMusic();
+#endif
 }
 
 void SoundEngine::enable( bool status )
@@ -165,6 +177,10 @@ void SoundEngine::destroy()
 
 void SoundEngine::update( Mob* player, float a )
 {
+#if !defined(ANDROID) && !defined(RPI)
+    _tickMusic(player != NULL);
+#endif
+
 	if (/*!loaded || */options->sound == 0) return;
 	if (player == NULL) return;
 
@@ -251,4 +267,121 @@ void SoundEngine::playUI(const std::string& name, float volume, float pitch) {
 		soundSystem.playAt(sound, 0, 0, 0, volume, pitch);
 	}
 }
+#endif
+
+// ── Background music ──────────────────────────────────────────────────────────
+#if !defined(ANDROID) && !defined(RPI)
+
+static const char* MUSIC_TRACKS[] = {
+    "data/music/calm1.wav",
+    "data/music/calm2.wav",
+    "data/music/calm3.wav",
+    nullptr
+};
+
+bool SoundEngine::_loadWav(const char* path, MusicTrack& out)
+{
+    FILE* f = fopen(path, "rb");
+    if (!f) return false;
+
+    char id[4];
+    uint32_t sz;
+
+    // RIFF header
+    if (fread(id, 1, 4, f) != 4 || memcmp(id, "RIFF", 4) != 0) { fclose(f); return false; }
+    fread(&sz, 4, 1, f);
+    if (fread(id, 1, 4, f) != 4 || memcmp(id, "WAVE", 4) != 0) { fclose(f); return false; }
+
+    int channels = 0, sampleRate = 0, byteWidth = 0;
+    char* pcm = nullptr;
+    int   pcmSize = 0;
+
+    while (fread(id, 1, 4, f) == 4) {
+        uint32_t chunkSz = 0;
+        if (fread(&chunkSz, 4, 1, f) != 1) break;
+
+        if (memcmp(id, "fmt ", 4) == 0) {
+            uint16_t fmt, ch, blk, bits; uint32_t sr, br;
+            fread(&fmt, 2, 1, f); fread(&ch, 2, 1, f);
+            fread(&sr,  4, 1, f); fread(&br, 4, 1, f);
+            fread(&blk, 2, 1, f); fread(&bits, 2, 1, f);
+            if (chunkSz > 16) fseek(f, chunkSz - 16, SEEK_CUR);
+            channels = ch; sampleRate = sr; byteWidth = bits / 8;
+        } else if (memcmp(id, "data", 4) == 0) {
+            pcm = new char[chunkSz];
+            pcmSize = (int)fread(pcm, 1, chunkSz, f);
+            break;
+        } else {
+            fseek(f, chunkSz, SEEK_CUR);
+        }
+    }
+    fclose(f);
+
+    if (!pcm || channels == 0 || sampleRate == 0 || byteWidth == 0) {
+        delete[] pcm; return false;
+    }
+    out.data = pcm; out.size = pcmSize;
+    out.channels = channels; out.sampleRate = sampleRate; out.byteWidth = byteWidth;
+    return true;
+}
+
+void SoundEngine::_initMusic()
+{
+    for (int i = 0; MUSIC_TRACKS[i]; i++) {
+        MusicTrack t{};
+        if (_loadWav(MUSIC_TRACKS[i], t))
+            _musicTracks.push_back(t);
+    }
+}
+
+void SoundEngine::_tickMusic(bool inWorld)
+{
+    // Respect the music volume setting
+    float vol = options ? options->music : 0.0f;
+    if (vol <= 0.0f) {
+        if (soundSystem.isMusicPlaying()) soundSystem.stopMusic();
+        return;
+    }
+
+    if (!inWorld) {
+        if (_musicWasInWorld && soundSystem.isMusicPlaying())
+            soundSystem.stopMusic();
+        _musicWasInWorld = false;
+        _musicCooldownEndMs = 0;
+        return;
+    }
+
+    long long now = (long long)getTimeMs();
+
+    if (!_musicWasInWorld) {
+        // Just entered a world — schedule first track after 5 minutes
+        _musicWasInWorld = true;
+        _musicCooldownEndMs = now + (90LL * 1000);
+        return;
+    }
+
+    if (soundSystem.isMusicPlaying()) return;
+
+    if (_musicCooldownEndMs == -1) {
+        // Track just finished — pick a 2–5 minute cooldown before the next one
+        long long wait = (2LL * 60 * 1000) + (now % (3LL * 60 * 1000));
+        _musicCooldownEndMs = now + wait;
+        return;
+    }
+
+    if (now < _musicCooldownEndMs) return; // still waiting
+
+    _playNextMusicTrack();
+    _musicCooldownEndMs = -1; // signals "detect track end → start cooldown"
+}
+
+void SoundEngine::_playNextMusicTrack()
+{
+    if (_musicTracks.empty()) return;
+    float vol = options ? options->music : 1.0f;
+    const MusicTrack& t = _musicTracks[_musicTrackIdx % (int)_musicTracks.size()];
+    _musicTrackIdx++;
+    soundSystem.playMusic(t.data, t.size, t.channels, t.sampleRate, t.byteWidth, vol);
+}
+
 #endif

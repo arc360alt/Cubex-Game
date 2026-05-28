@@ -325,7 +325,7 @@ int main(int argc, char** argv) {
     SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE,   8);
 
     g_sdlWindow = SDL_CreateWindow(
-        "Minecraft PE Reborn (macOS)",
+        "Cubex (macOS)",
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         g_width, g_height,
         SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_SHOWN

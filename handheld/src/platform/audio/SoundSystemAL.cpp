@@ -38,7 +38,9 @@ SoundSystemAL::SoundSystemAL()
 :	available(true),
     context(0),
     device(0),
-    _rotation(-9999.9f)
+    _rotation(-9999.9f),
+    _musicSource(0),
+    _musicBuffer(0)
 {
     _buffers.reserve(64);
 	init();
@@ -51,9 +53,15 @@ SoundSystemAL::~SoundSystemAL()
     for (int i = 0; i < (int)_buffers.size(); ++i)
         if (_buffers[i].inited) alDeleteBuffers(1, &_buffers[i].bufferID);
 
+    if (_musicSource) {
+        alSourceStop(_musicSource);
+        alDeleteSources(1, &_musicSource);
+    }
+    if (_musicBuffer) alDeleteBuffers(1, &_musicBuffer);
+
     alcMakeContextCurrent(NULL);
 	alcDestroyContext(context);
-	
+
 	// Close the device
 	alcCloseDevice(device);
 }
@@ -83,6 +91,12 @@ void SoundSystemAL::init()
 		alListenerfv(AL_ORIENTATION, listenerOri);
 		alListenerfv(AL_VELOCITY, listenerVel);
         
+        // Dedicated music source — non-positional, no distance falloff
+        alGenSources(1, &_musicSource);
+        alSourcei(_musicSource, AL_SOURCE_RELATIVE, AL_TRUE);
+        alSource3f(_musicSource, AL_POSITION, 0, 0, 0);
+        alSourcef(_musicSource, AL_ROLLOFF_FACTOR, 0.0f);
+
         errIdString = "Init audio";
         checkError();
 	}
@@ -249,4 +263,41 @@ bool SoundSystemAL::getBufferId(const SoundDesc& sound, ALuint* buf) {
 
     // @note: do NOT free the sound data — on macOS the PCM buffers are statically allocated
     return true;
+}
+
+void SoundSystemAL::playMusic(const char* pcmData, int size, int channels, int sampleRate, int byteWidth, float volume)
+{
+    if (!available || !_musicSource) return;
+
+    alSourceStop(_musicSource);
+    alSourcei(_musicSource, AL_BUFFER, 0);
+
+    if (_musicBuffer) {
+        alDeleteBuffers(1, &_musicBuffer);
+        _musicBuffer = 0;
+    }
+
+    alGenBuffers(1, &_musicBuffer);
+    ALenum format = (channels == 2)
+        ? ((byteWidth == 2) ? AL_FORMAT_STEREO16 : AL_FORMAT_STEREO8)
+        : ((byteWidth == 2) ? AL_FORMAT_MONO16   : AL_FORMAT_MONO8);
+
+    alBufferData(_musicBuffer, format, pcmData, size, sampleRate);
+    alSourcei(_musicSource, AL_BUFFER, _musicBuffer);
+    alSourcef(_musicSource, AL_GAIN, volume);
+    alSourcei(_musicSource, AL_LOOPING, AL_FALSE);
+    alSourcePlay(_musicSource);
+}
+
+void SoundSystemAL::stopMusic()
+{
+    if (_musicSource) alSourceStop(_musicSource);
+}
+
+bool SoundSystemAL::isMusicPlaying()
+{
+    if (!_musicSource) return false;
+    ALint state = AL_STOPPED;
+    alGetSourcei(_musicSource, AL_SOURCE_STATE, &state);
+    return state == AL_PLAYING;
 }

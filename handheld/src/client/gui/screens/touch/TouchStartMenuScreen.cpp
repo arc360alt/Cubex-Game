@@ -1,4 +1,8 @@
 #include "TouchStartMenuScreen.h"
+#include "SplashData.h"
+#include <cstdlib>
+#include <ctime>
+#include <cmath>
 #include "../ProgressScreen.h"
 #include "../OptionsScreen.h"
 #include "../PauseScreen.h"
@@ -18,6 +22,7 @@
 #include "../../../../AppPlatform.h"
 #include "../../../../LicenseCodes.h"
 #include "../../../../util/Mth.h"
+#include "../../../../platform/time.h"
 
 #include "../DialogDefinitions.h"
 #include "../SimpleChooseLevelScreen.h"
@@ -153,6 +158,9 @@ void StartMenuScreen::init()
     #endif
 
 	bJoin.active = bHost.active = bOptions.active = false;
+
+	std::srand((unsigned)std::time(nullptr));
+	splash = SPLASH_TEXTS[std::rand() % SPLASH_TEXTS.size()];
 }
 
 void StartMenuScreen::setupPositions() {
@@ -244,8 +252,8 @@ void StartMenuScreen::render( int xm, int ym, float a )
 		minecraft->textures->bind(id);
 
 		const float x = (float)width / 2;
-		const float y = 4;
-		const float wh = 0.5f * Mth::Min((float)width/2.0f, (float)data->w / 2);
+		const float y = 8;
+		const float wh = 0.25f * Mth::Min((float)width/2.0f, (float)data->w / 2);
 		const float scale = 2.0f * wh / (float)data->w;
 		const float h = scale * (float)data->h;
 
@@ -261,7 +269,25 @@ void StartMenuScreen::render( int xm, int ym, float a )
 
 		drawString(font, version, versionPosX, (int)(y+h)+2, /*50,*/ 0xffcccccc);//0x666666);
 		drawString(font, copyright, copyrightPosX, height - 10, 0xffffff);
-		//patch->draw(t, 0, 20);
+
+		// Pulsing yellow splash text, rotated -20° at bottom-right of logo
+		if (!splash.empty()) {
+			int textW = font->width(splash);
+			int textH = font->height(splash);
+			// Scale proportional to logo width
+			float baseScale = wh / 100.0f;
+			float pulse = baseScale * (1.0f + 0.1f * sinf(getTimeMs() * 3.14159f / 500.0f));
+			float splashX = x + wh * 0.78f;
+			float splashY = y + h * 0.65f;
+			glPushMatrix2();
+			glTranslatef2(splashX, splashY, 0.0f);
+			glRotatef2(-20.0f, 0.0f, 0.0f, 1.0f);
+			glScalef2(pulse, pulse, 1.0f);
+			font->draw(splash, (float)(-textW / 2 + 1), (float)(-textH / 2 + 1), 0xFF202000);
+			font->draw(splash, (float)(-textW / 2),     (float)(-textH / 2),     0xFFFFFF00);
+			glPopMatrix2();
+			glColor4f2(1.0f, 1.0f, 1.0f, 1.0f);
+		}
 	}
 	Screen::render(xm, ym, a);
     glDisable2(GL_BLEND);
