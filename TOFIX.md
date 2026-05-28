@@ -8,5 +8,3 @@
 - **Make the game work with Windows and other operating systems.**
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
-- Fix trapdoors randomly chancing thier position and state if thier opened and closed at random points
-- Fix slabs chaning thier position as an upper or lower slab when other blocks near it are changed

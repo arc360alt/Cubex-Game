@@ -134,9 +134,9 @@ bool StoneSlabTile::shouldRenderFace(LevelSource* level, int x, int y, int z, in
 	}
 
 	int ox = x, oy = y, oz = z;
-	ox += Facing::STEP_X[Facing::OPPOSITE_FACING[face]];
-	oy += Facing::STEP_Y[Facing::OPPOSITE_FACING[face]];
-	oz += Facing::STEP_Z[Facing::OPPOSITE_FACING[face]];
+	ox += Facing::STEP_X[face];
+	oy += Facing::STEP_Y[face];
+	oz += Facing::STEP_Z[face];
 
 	bool isUpper = (level->getData(ox, oy, oz) & TOP_SLOT_BIT) != 0;
 	if (isUpper) {
