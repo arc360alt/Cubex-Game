@@ -67,6 +67,17 @@ void Gui::render(float a, bool mouseFree, int xMouse, int yMouse) {
 	if (!minecraft->level || !minecraft->player)
 		return;
 
+	// Always-visible dev watermark (top-centre, like early Java Minecraft)
+	{
+		const int sw = (int)(minecraft->width * InvGuiScale);
+		std::string vstr = std::string("Cubex ") + Common::getGameVersionString();
+		int tx = sw / 2 - minecraft->font->width(vstr) / 2;
+		Tesselator& t = Tesselator::instance;
+		t.beginOverride();
+		minecraft->font->drawShadow(vstr, tx, 2, 0xffffff);
+		t.endOverrideAndDraw();
+	}
+
 	// F1: hide the HUD (but keep the debug overlay)
 	if (minecraft->options.hideGui) {
 		if (minecraft->options.renderDebug)
@@ -718,7 +729,7 @@ void Gui::renderDebugInfo() {
 
 	std::vector<std::string> lines;
 	lines.reserve(8);
-	lines.push_back(std::string("MinecraftPE ") + Common::getGameVersionString());
+	lines.push_back(std::string("Cubex ") + Common::getGameVersionString());
 	sprintf(buf, "FPS: %d", minecraft->fps);
 	lines.push_back(buf);
 

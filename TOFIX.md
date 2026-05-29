@@ -8,3 +8,4 @@
 - **Make the game work with Windows and other operating systems.**
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
+- Fix slabs chaning thier position as an upper or lower slab and their textures breaking and messing up when other blocks near it are changed
