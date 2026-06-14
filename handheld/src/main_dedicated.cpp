@@ -8,6 +8,7 @@
 
 #include "world/level/LevelSettings.h"
 #include "world/level/Level.h"
+#include "world/level/chunk/ChunkSource.h"
 #include "server/ArgumentsSettings.h"
 #include "platform/CThread.h"
 #include "platform/time.h"
@@ -88,11 +89,16 @@ int main(int numArguments, char* pszArgs[]) {
 		CThread::sleep(1);
 	}
 	if (((MAIN_CLASS*)g_app)->level && ((MAIN_CLASS*)g_app)->level->getLevelStorage()) {
-		const PlayerList& players = ((MAIN_CLASS*)g_app)->level->players;
+		Level* shutdownLevel = ((MAIN_CLASS*)g_app)->level;
+		const PlayerList& players = shutdownLevel->players;
 		for (unsigned int i = 0; i < players.size(); ++i)
-			((MAIN_CLASS*)g_app)->level->getLevelStorage()->saveServerPlayer(players[i]);
+			shutdownLevel->getLevelStorage()->saveServerPlayer(players[i]);
+		// Flush all modified chunks so block changes aren't lost on restart.
+		ChunkSource* cs = shutdownLevel->getChunkSource();
+		if (cs) cs->saveAll(false);
+		// Save entities and level metadata.
+		shutdownLevel->saveGame();
 	}
-	((MAIN_CLASS*)g_app)->level->saveLevelData();
 	delete app;
 	appContext.platform->finish();
 	delete appContext.platform;

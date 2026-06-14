@@ -17,19 +17,23 @@ public:
 
 	int entityId;
 	float x, y, z;
+	float yRot, xRot;
 
 	StartGamePacket()
+	: yRot(0), xRot(0)
 	{
 	}
 
-	StartGamePacket(long seed, int levelGeneratorVersion, int gameType, int worldType, int entityId, float x, float y, float z)
+	StartGamePacket(long seed, int levelGeneratorVersion, int gameType, int worldType, int entityId, float x, float y, float z, float yRot = 0, float xRot = 0)
 	:	levelSeed(seed),
 		levelGeneratorVersion((levelGeneratorVersion & LEVEL_GENERATOR_MASK) | (worldType == 1 ? WORLD_TYPE_MASK : 0)),
 		gameType(gameType),
 		entityId(entityId),
 		x(x),
 		y(y),
-		z(z)
+		z(z),
+		yRot(yRot),
+		xRot(xRot)
 	{
 	}
 
@@ -50,10 +54,16 @@ public:
 		bitStream->Write(levelSeed);
 		bitStream->Write(levelGeneratorVersion);
 		bitStream->Write(gameType);
+		// Write worldType explicitly so the reader's backward-compat heuristic
+		// fires correctly and doesn't misread entityId as worldType.
+		int wt = getWorldType();
+		bitStream->Write(wt);
 		bitStream->Write(entityId);
 		bitStream->Write(x);
 		bitStream->Write(y);
 		bitStream->Write(z);
+		bitStream->Write(yRot);
+		bitStream->Write(xRot);
 	}
 
 	void read(RakNet::BitStream* bitStream)
@@ -82,6 +92,11 @@ public:
 		bitStream->Read(x);
 		bitStream->Read(y);
 		bitStream->Read(z);
+		// Optional: yRot/xRot (older servers won't send these)
+		if (bitStream->GetNumberOfUnreadBits() >= (sizeof(float) * 2) * 8) {
+			bitStream->Read(yRot);
+			bitStream->Read(xRot);
+		}
 	}
 
 	void handle(const RakNet::RakNetGUID& source, NetEventCallback* callback)

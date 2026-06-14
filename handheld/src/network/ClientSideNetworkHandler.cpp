@@ -176,7 +176,7 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 	LocalPlayer* player = new LocalPlayer(minecraft, level, minecraft->user, level->dimension->id, isCreative);
 	player->owner = rakPeer->GetMyGUID();
 	player->entityId = packet->entityId;
-	player->moveTo(packet->x, packet->y, packet->z, player->yRot, player->xRot);
+	player->moveTo(packet->x, packet->y, packet->z, packet->yRot, packet->xRot);
 
 	LOGI("new pos: %f, %f [%f - %f]\n", player->x, player->z, player->bb.y0, player->bb.y1);
 
@@ -971,5 +971,23 @@ void ClientSideNetworkHandler::clearChunksLoaded()
 		requestNextChunkIndexList[i].x = i/CHUNK_WIDTH;
 		requestNextChunkIndexList[i].y = i%CHUNK_WIDTH;
 		chunksLoaded[i] = false;
+	}
+}
+
+// Receive inventory restore sent by the server on reconnect.
+// ExtraDrop packets from client-death redistribution are never forwarded to other clients,
+// so any SendInventoryPacket arriving here is always a server-side restore (extra == 0).
+void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, SendInventoryPacket* packet) {
+	if (!minecraft->player) return;
+	if ((packet->extra & SendInventoryPacket::ExtraDrop) != 0) return;
+
+	minecraft->player->inventory->replace(packet->items, packet->numItems);
+
+	// Restore armor slots that were appended after inventory items.
+	for (int i = 0; i < SendInventoryPacket::NumArmorItems; ++i) {
+		int idx = packet->numItems + i;
+		if (idx >= (int)packet->items.size()) break;
+		const ItemInstance& ai = packet->items[idx];
+		minecraft->player->setArmor(i, ai.isNull() ? NULL : new ItemInstance(ai));
 	}
 }

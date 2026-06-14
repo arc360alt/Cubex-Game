@@ -1,7 +1,7 @@
 - Make inventory navigation better on PC, and make alot of the UI better on PC too
 - Switching from creative to survival does not remove extra inventory slots
 - Fix the dedicated server
-    - Fix camera and player postiion not being saved properly
+    - Fix camera and player postiion not being saved properly kinda, its really only the camera position
     - Fix inventory data not being saved at all when leaving the server and rejoining
     - Fix some wierd issues with chunks and blocks that were broken re appearing on relog of the server
 - Fix the lighting engine (make light updates more optimized, fix the wierd dark spots everywhere, fix chunks not updating thier lighitng while changing to night/day)

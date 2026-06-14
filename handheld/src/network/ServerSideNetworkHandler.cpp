@@ -452,7 +452,8 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
             gameType,
 			level->getLevelData()->getWorldType(),
             newPlayer->entityId,
-            newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z
+            newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z,
+            newPlayer->yRot, newPlayer->xRot
         ).write(&bitStream);
 
         rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
@@ -551,6 +552,15 @@ void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID&
 			rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
 			delete packet;
 		}
+	}
+
+	// Send the player's saved inventory back so it's restored after reconnect.
+	Player* player = getPlayer(source);
+	if (player) {
+		SendInventoryPacket invPacket(player, false);
+		bitStream.Reset();
+		invPacket.write(&bitStream);
+		rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
 	}
 }
 

@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-BUILD_DIR="${BUILD_DIR:-$ROOT_DIR/handheld/project/dedicated_server/build}"
+BUILD_DIR="${BUILD_DIR:-$ROOT_DIR/dedicated_server/build}"
 BIN_PATH="$BUILD_DIR/mcpe_server"
 
 if [ ! -x "$BIN_PATH" ]; then

@@ -50,6 +50,7 @@ LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dim
 	input(NULL),
 	sentInventoryItemId(-1),
 	sentInventoryItemData(-1),
+	_inventorySyncTick(0),
 	autoJumpEnabled(minecraft ? minecraft->options.autoJump : true),
 	armorTypeHash(0),
 	isSprinting(false),
@@ -146,6 +147,13 @@ void LocalPlayer::tick() {
 			sentInventoryItemData = newItemData;
 			PlayerEquipmentPacket packet(entityId, newItemId, newItemData);
 			minecraft->raknetInstance->send(packet);
+		}
+
+		// Sync full inventory to server every ~10 seconds so it gets saved correctly.
+		if (++_inventorySyncTick >= 200) {
+			_inventorySyncTick = 0;
+			SendInventoryPacket invPacket(this, false);
+			minecraft->raknetInstance->send(invPacket);
 		}
 	}
 /*
