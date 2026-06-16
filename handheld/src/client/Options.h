@@ -174,6 +174,9 @@ public:
 	float pixelsPerMillimeter;
 	float fieldOfView;
 	std::string skinPath;
+	std::string accountToken;
+	std::string accountUsername;
+	std::string backendUrl;
 	std::string getCustomSkinGamePath();
     Options(Minecraft* minecraft, const std::string& workingDirectory)
 	:	minecraft(minecraft)

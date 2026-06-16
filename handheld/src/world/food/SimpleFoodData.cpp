@@ -36,11 +36,10 @@ void SimpleFoodData::tick(Player* player) {
     }
 
     // Health regen when food is high enough
-    if (foodLevel >= 18 && saturation > 0 && player->health < player->getMaxHealth()) {
+    // Saturation is not consumed here — it is already drained by sprinting/walking.
+    if (foodLevel >= 18 && player->health < player->getMaxHealth()) {
         if (player->tickCount % 10 == 0) {
             player->heal(1);
-            saturation -= 0.4f;
-            if (saturation < 0.0f) saturation = 0.0f;
         }
     }
 

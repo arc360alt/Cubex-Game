@@ -50,7 +50,6 @@ LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dim
 	input(NULL),
 	sentInventoryItemId(-1),
 	sentInventoryItemData(-1),
-	_inventorySyncTick(0),
 	autoJumpEnabled(minecraft ? minecraft->options.autoJump : true),
 	armorTypeHash(0),
 	isSprinting(false),
@@ -103,6 +102,12 @@ bool LocalPlayer::isSolidTile(int x, int y, int z) {
 void LocalPlayer::tick() {
 
 	super::tick();
+
+	// In multiplayer the level is client-side, so Player::tick() skips foodData.tick().
+	// Run it here so the local player's hunger bar drains correctly.
+	if (level->isClientSide) {
+		foodData.tick(this);
+	}
 	if(!useItem.isNull()) {
 		ItemInstance* item = inventory->getSelected();
 		if(item != NULL && item->id == useItem.id) {
@@ -149,12 +154,6 @@ void LocalPlayer::tick() {
 			minecraft->raknetInstance->send(packet);
 		}
 
-		// Sync full inventory to server every ~10 seconds so it gets saved correctly.
-		if (++_inventorySyncTick >= 200) {
-			_inventorySyncTick = 0;
-			SendInventoryPacket invPacket(this, false);
-			minecraft->raknetInstance->send(invPacket);
-		}
 	}
 /*
     for (int i = 0; i < 4; ++i) {

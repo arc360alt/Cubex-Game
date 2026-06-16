@@ -31,6 +31,13 @@
 #include "../client/player/RemotePlayer.h"
 #include "../world/level/tile/LevelEvent.h"
 #include "../world/entity/item/FallingTile.h"
+#ifndef STANDALONE_SERVER
+#include "../client/renderer/Textures.h"
+#include "../client/renderer/TextureData.h"
+#include "../client/BackendClient.h"
+#endif
+#include <cstring>
+#include <unistd.h>
 
 static MultiPlayerLevel* mpcast(Level* l) { return (MultiPlayerLevel*) l; }
 
@@ -93,6 +100,12 @@ void ClientSideNetworkHandler::onConnect(const RakNet::RakNetGUID& hostGuid)
 	serverGuid = hostGuid;
 
 	clearChunksLoaded();
+	// Use verified account username if logged in, otherwise fall back to options username
+#ifndef STANDALONE_SERVER
+	if (!minecraft->options.accountToken.empty() && !minecraft->options.accountUsername.empty()) {
+		minecraft->user->name = minecraft->options.accountUsername;
+	}
+#endif
 	LoginPacket packet(minecraft->user->name.c_str(), SharedConstants::NetworkProtocolVersion);
 	raknetInstance->send(packet);
 }
@@ -182,6 +195,10 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, StartGam
 
 	minecraft->setLevel(level, "ClientSideNetworkHandler -> setLevel", player);
 	minecraft->setIsCreativeMode(isCreative);
+
+	// Minecraft::setLevel calls player->resetPos() which zeroes xRot (camera pitch).
+	// yRot is unaffected by resetPos, so only pitch needs to be re-applied.
+	player->xRot = player->xRotO = packet->xRot;
 }
 
 void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MessagePacket* packet)
@@ -308,6 +325,24 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AddPlaye
 	message += " joined the game";
 #ifndef STANDALONE_SERVER
 	minecraft->gui.addMessage(message);
+
+	// Download this player's skin from the backend if configured
+	{
+		const std::string& backendUrl = minecraft->options.backendUrl;
+		if (!backendUrl.empty()) {
+			std::string username = packet->name.C_String();
+			std::string skinPath = "/tmp/mcpe_skin_" + username + ".png";
+			// Use cached file if available, else download
+			bool haveSkin = (access(skinPath.c_str(), F_OK) == 0);
+			if (!haveSkin)
+				haveSkin = BackendClient::downloadSkin(backendUrl, username, skinPath);
+			if (haveSkin) {
+				TextureId texId = minecraft->textures->loadTexture(skinPath, false);
+				if (Textures::isTextureIdValid(texId))
+					player->setSkinTexture(skinPath);
+			}
+		}
+	}
 #endif
 }
 
@@ -380,10 +415,16 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, TakeItem
 		return;
 
 	// try take it and if we don't have space; re-throw it
-	if (minecraft->player->entityId == packet->playerId
-	&& !minecraft->player->inventory->add(&item)) {
-		DropItemPacket dropPacket(packet->playerId, item);
-		minecraft->raknetInstance->send(dropPacket);
+	if (minecraft->player->entityId == packet->playerId) {
+		if (!minecraft->player->inventory->add(&item)) {
+			DropItemPacket dropPacket(packet->playerId, item);
+			minecraft->raknetInstance->send(dropPacket);
+		} else {
+			// Sync immediately so the server knows about this item even if the
+			// player disconnects before the next periodic sync fires.
+			SendInventoryPacket invPacket(minecraft->player, false);
+			minecraft->raknetInstance->send(invPacket);
+		}
 	}
 	level->playSound(e, "random.pop", 0.2f, 1.0f * 2.f);
 }
@@ -982,6 +1023,19 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, SendInve
 	if ((packet->extra & SendInventoryPacket::ExtraDrop) != 0) return;
 
 	minecraft->player->inventory->replace(packet->items, packet->numItems);
+
+	// replace() calls clearInventory() which resets all hotbar links to LinkedSlot(i),
+	// meaning inventorySlot = i (< numLinkedSlots), which getLinked() treats as invalid.
+	// Items land in slots numLinkedSlots+ but are completely inaccessible via hotbar.
+	// Re-wire each non-empty inventory slot back into the hotbar.
+	{
+		Inventory* inv = minecraft->player->inventory;
+		const int base = inv->getNumLinkedSlots();
+		for (int i = 0; i < packet->numItems && (base + i) < inv->getContainerSize(); ++i) {
+			if (!packet->items[i].isNull())
+				inv->linkEmptySlot(base + i);
+		}
+	}
 
 	// Restore armor slots that were appended after inventory items.
 	for (int i = 0; i < SendInventoryPacket::NumArmorItems; ++i) {

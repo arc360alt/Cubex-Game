@@ -319,10 +319,12 @@ bool RegionFile::writeChunk(int x, int z, RakNet::BitStream& chunkData)
 bool RegionFile::write(int sector, RakNet::BitStream& chunkData)
 {
 	fseek(file, sector * SECTOR_BYTES, SEEK_SET);
-	//LOGI("writing %d B to sector %d\n", chunkData.GetNumberOfBytesUsed(), sector);
 	int size = chunkData.GetNumberOfBytesUsed() + sizeof(int);
 	logAssert(fwrite(&size, sizeof(int), 1, file), 1);
 	logAssert(fwrite(chunkData.GetData(), 1, chunkData.GetNumberOfBytesUsed(), file), chunkData.GetNumberOfBytesUsed());
-
+	// Flush the C stdlib buffer so the data reaches the OS even if the server
+	// crashes before fclose() is called.  Without this, periodic chunk saves
+	// were buffered and lost on an unclean shutdown.
+	fflush(file);
 	return true;
 }

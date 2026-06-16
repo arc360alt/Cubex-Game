@@ -11,10 +11,12 @@
 #include "../network/packet/SetFoodDataPacket.h"
 #include "../network/packet/SetHealthPacket.h"
 #include "../network/packet/TakeItemEntityPacket.h"
+#include "../world/entity/item/ItemEntity.h"
 #include "../client/Minecraft.h"
 #include "../world/level/tile/entity/FurnaceTileEntity.h"
 #include "../world/inventory/FurnaceMenu.h"
 #include "../world/inventory/FillingContainer.h"
+#include "../world/entity/player/Inventory.h"
 #include "../world/inventory/ContainerMenu.h"
 #include "../world/entity/EntityEvent.h"
 #include "../network/packet/AnimatePacket.h"
@@ -80,6 +82,16 @@ void ServerPlayer::tick() {
 }
 
 void ServerPlayer::take( Entity* e, int orgCount ) {
+	// Inventory::add() is a no-op when hasFakeInventory=true, so the server inventory
+	// would stay empty and lose items if the client disconnects before its async sync
+	// arrives.  Fix: add the picked-up item directly through the FillingContainer base
+	// class, bypassing the hasFakeInventory shortcut, so the server is always current.
+	if (e->isItemEntity()) {
+		ItemInstance taken = static_cast<ItemEntity*>(e)->item;
+		taken.count = orgCount;
+		inventory->FillingContainer::add(&taken);
+	}
+
 	TakeItemEntityPacket packet(e->entityId, entityId);
 	_mc->raknetInstance->send(packet);
 

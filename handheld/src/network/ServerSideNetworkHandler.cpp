@@ -486,6 +486,15 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 	SetTimePacket(level->getTime()).write(&bitStream);
 	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
 
+	// Enable nametags for the joining player
+	{
+		level->adventureSettings.showNameTags = true;
+		AdventureSettingsPacket advPkt(level->adventureSettings);
+		bitStream.Reset();
+		advPkt.write(&bitStream);
+		rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+	}
+
 	// send all pre-existing players to the new player
 	const PlayerList& players = level->players;
 	for (unsigned int i = 0; i < players.size(); i++) {
@@ -508,6 +517,17 @@ void ServerSideNetworkHandler::onReady_ClientGeneration(const RakNet::RakNetGUID
 #else
 	LOGW("%s joined the game\n", newPlayer->name.c_str());
 #endif
+
+	// Restore the player's inventory before sending entity packets.  Item entities
+	// are included in the entity list below; if a TakeItemEntityPacket fires before
+	// the client has its inventory, the client sends a sync with an empty inventory
+	// that overwrites (and loses) items that were in slot 9 on the server.
+	{
+		SendInventoryPacket invPacket(newPlayer, false);
+		bitStream.Reset();
+		invPacket.write(&bitStream);
+		rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+	}
 
 	// Send all Entities to the new player
 	for (unsigned int i = 0; i < level->entities.size(); ++i) {
@@ -554,14 +574,6 @@ void ServerSideNetworkHandler::onReady_RequestedChunks(const RakNet::RakNetGUID&
 		}
 	}
 
-	// Send the player's saved inventory back so it's restored after reconnect.
-	Player* player = getPlayer(source);
-	if (player) {
-		SendInventoryPacket invPacket(player, false);
-		bitStream.Reset();
-		invPacket.write(&bitStream);
-		rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
-	}
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MovePlayerPacket* packet)
@@ -850,6 +862,10 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SendInv
 			p->inventory->dropAll(false);
             //@todo @armor : Drop armor
 		}
+		// Persist immediately so this inventory state survives a crash or fast disconnect
+		// before the next movement-triggered autosave fires.
+		if (level->getLevelStorage())
+			level->getLevelStorage()->saveServerPlayer(p);
 	}
 }
 

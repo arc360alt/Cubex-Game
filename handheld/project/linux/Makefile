@@ -54,6 +54,7 @@ LDFLAGS := \
 	-lGL \
 	-lpthread \
 	-lz \
+	-lcurl \
 	$(SAN_FLAGS)
 
 # ── Game source files ─────────────────────────────────────────────────────────

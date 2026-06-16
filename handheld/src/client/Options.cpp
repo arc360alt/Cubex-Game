@@ -54,6 +54,9 @@ void Options::initDefaultValues() {
 	//skin     = "Default";
 	username = "Steve";
 	skinPath = "";
+	accountToken = "";
+	accountUsername = "";
+	backendUrl = "http://localhost:8080";
 	serverVisible = true;
 
 	keyUp	 = KeyMapping("key.forward", Keyboard::KEY_W);
@@ -263,6 +266,9 @@ void Options::update()
 		// Multiplayer
 		if (key == OptionStrings::Multiplayer_Username) username = value;
 		if (key == "game.skinPath") skinPath = value;
+		if (key == "account.token") accountToken = value;
+		if (key == "account.username") accountUsername = value;
+		if (key == "account.backendUrl") backendUrl = value;
 		if (key == OptionStrings::Multiplayer_ServerVisible) readBool(value, serverVisible);
 
 		// Controls
@@ -423,6 +429,9 @@ void Options::save()
 	// Game
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_Username, username);
 	addOptionToSaveOutput(stringVec, "game.skinPath", skinPath);
+	addOptionToSaveOutput(stringVec, "account.token", accountToken);
+	addOptionToSaveOutput(stringVec, "account.username", accountUsername);
+	addOptionToSaveOutput(stringVec, "account.backendUrl", backendUrl);
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_ServerVisible, serverVisible);
 	addOptionToSaveOutput(stringVec, OptionStrings::Game_DifficultyLevel, difficulty);
 	addOptionToSaveOutput(stringVec, OptionStrings::Game_ThirdPerson, thirdPersonView);

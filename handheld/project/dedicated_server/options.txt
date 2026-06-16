@@ -2,6 +2,9 @@ audio_music:1
 audio_sound:1
 mp_username:Steve
 game.skinPath:
+account.token:
+account.username:
+account.backendUrl:http://localhost:8080
 mp_server_visible_default:1
 game_difficulty:2
 game_thirdperson:0

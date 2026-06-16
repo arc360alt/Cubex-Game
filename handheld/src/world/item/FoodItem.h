@@ -44,8 +44,8 @@ public:
     }
 
     ItemInstance* use(ItemInstance* instance, Level* level, Player* player) {
-        if (!player->abilities.invulnerable && 
-            (player->isHurt() || player->foodData.getHunger() < 20 || canAlwaysEat)) {
+        if (!player->abilities.invulnerable &&
+            (player->foodData.getHunger() < 20 || canAlwaysEat)) {
             player->startUsingItem(*instance, getUseDuration(instance));
         }
         return instance;

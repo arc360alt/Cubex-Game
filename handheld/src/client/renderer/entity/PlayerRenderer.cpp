@@ -3,6 +3,8 @@
 #include "../../../world/entity/player/Player.h"
 #include "../../../world/level/Level.h"
 #include "../../../world/item/ArmorItem.h"
+#include "../Textures.h"
+#include "../TextureData.h"
 
 static const std::string armorFilenames[10] = {
 	"armor/cloth_1.png",	"armor/cloth_2.png",
@@ -14,6 +16,7 @@ static const std::string armorFilenames[10] = {
 
 PlayerRenderer::PlayerRenderer( HumanoidModel* humanoidModel, float shadow )
 :	super(humanoidModel, shadow),
+	playerModel(humanoidModel),
 	armorParts1(new HumanoidModel(1.0f)),
 	armorParts2(new HumanoidModel(0.5f))
 {
@@ -22,6 +25,22 @@ PlayerRenderer::PlayerRenderer( HumanoidModel* humanoidModel, float shadow )
 PlayerRenderer::~PlayerRenderer() {
 	delete armorParts1;
 	delete armorParts2;
+}
+
+void PlayerRenderer::render(Entity* e, float x, float y, float z, float rot, float a) {
+	// Detect whether the player's skin is 64x64 (1.8+) or 64x32 (pre-1.8)
+	// and configure the model accordingly.  Cache by skin name so we only
+	// query texture metadata when the skin actually changes.
+	Mob* mob = (Mob*)e;
+	const std::string& texName = mob->getTexture();
+	if (texName != lastSkinName) {
+		lastSkinName = texName;
+		TextureId id = entityRenderDispatcher->textures->loadTexture(texName);
+		const TextureData* td = entityRenderDispatcher->textures->getTemporaryTextureData(id);
+		bool is64 = td && td->h >= 64;
+		playerModel->setSkinIs64(is64);
+	}
+	super::render(e, x, y, z, rot, a);
 }
 
 void PlayerRenderer::setupPosition( Entity* mob, float x, float y, float z ) {

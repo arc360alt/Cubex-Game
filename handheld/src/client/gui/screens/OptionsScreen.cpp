@@ -9,6 +9,8 @@
 #include "../../player/LocalPlayer.h"
 #include "../../sound/SoundEngine.h"
 #include "../../renderer/Textures.h"
+#include "../../renderer/Tesselator.h"
+#include "../../BackendClient.h"
 
 #include "../components/OptionsPane.h"
 #include "../components/ImageButton.h"
@@ -60,12 +62,59 @@ static bool loadPNG(const std::string& path, TextureData& out) {
     fclose(fp);
     return true;
 }
+// Draws one UV region of a skin texture as a scaled quad
+static void drawSkinRegion(Textures* textures, TextureId texId,
+                           float dx, float dy, float dw, float dh,
+                           float u0, float v0, float u1, float v1) {
+    textures->bind(texId);
+    glEnable2(GL_TEXTURE_2D);
+    glEnable2(GL_BLEND);
+    glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    Tesselator& t = Tesselator::instance;
+    t.begin();
+    t.color(1.0f, 1.0f, 1.0f, 1.0f); // reset tint to white
+    t.vertexUV(dx,      dy + dh, 0, u0, v1);
+    t.vertexUV(dx + dw, dy + dh, 0, u1, v1);
+    t.vertexUV(dx + dw, dy,      0, u1, v0);
+    t.vertexUV(dx,      dy,      0, u0, v0);
+    t.draw();
+    glDisable2(GL_BLEND);
+}
+
+// Draws a front-facing player head (base layer + hat overlay) from a skin texture
+static void drawSkinPreview(Minecraft* mc, const std::string& skinPath, float x, float y, float size) {
+    std::string path = skinPath.empty() ? "mob/char.png" : skinPath;
+    TextureId texId = mc->textures->loadTexture(path, skinPath.empty());
+    if (!Textures::isTextureIdValid(texId)) return;
+
+    // Detect actual texture height to handle both 64x32 and 64x64 skins
+    float tw = 64.0f, th = 32.0f;
+    const TextureData* td = mc->textures->getTemporaryTextureData(texId);
+    if (td) { tw = (float)td->w; th = (float)td->h; }
+
+    // Head front face: pixel (8,8)-(16,16)
+    float u0 = 8/tw, u1 = 16/tw, v0 = 8/th, v1 = 16/th;
+    drawSkinRegion(mc->textures, texId, x, y, size, size, u0, v0, u1, v1);
+
+    // Hat overlay: pixel (40,8)-(48,16)
+    float hu0 = 40/tw, hu1 = 48/tw;
+    drawSkinRegion(mc->textures, texId, x, y, size, size, hu0, v0, hu1, v1);
+}
+
 OptionsScreen::OptionsScreen()
 : btnClose(NULL),
   bHeader(NULL),
   btnBrowseSkin(NULL),
   btnAlexSkin(NULL),
   currentOptionPane(NULL),
+  btnLogin(NULL),
+  btnRegister(NULL),
+  btnLogout(NULL),
+  btnUploadSkin(NULL),
+  btnChangeUsername(NULL),
+  txtPassword(NULL),
+  txtNewUsername(NULL),
+  _accountStatus(""),
   selectedCategory(0),
   _catScrollY(0),
   _catScrollVelocity(0),
@@ -103,6 +152,11 @@ OptionsScreen::~OptionsScreen() {
 	currentOptionPane = NULL;
 	if (btnBrowseSkin) { delete btnBrowseSkin; btnBrowseSkin = NULL; }
 	if (btnAlexSkin) { delete btnAlexSkin; btnAlexSkin = NULL; }
+	if (btnLogin) { delete btnLogin; btnLogin = NULL; }
+	if (btnRegister) { delete btnRegister; btnRegister = NULL; }
+	if (btnLogout) { delete btnLogout; btnLogout = NULL; }
+	if (btnUploadSkin) { delete btnUploadSkin; btnUploadSkin = NULL; }
+	if (btnChangeUsername) { delete btnChangeUsername; btnChangeUsername = NULL; }
 }
 
 void OptionsScreen::init() {
@@ -136,6 +190,29 @@ void OptionsScreen::init() {
 	txtUsername->h = 24;
 	textBoxes.push_back(txtUsername);
 
+	txtPassword = new TextBox(12, "");
+	txtPassword->text = "";
+	txtPassword->w = 120;
+	txtPassword->h = 24;
+	textBoxes.push_back(txtPassword);
+
+	txtNewUsername = new TextBox(13, "");
+	txtNewUsername->text = "";
+	txtNewUsername->w = 120;
+	txtNewUsername->h = 24;
+	textBoxes.push_back(txtNewUsername);
+
+	btnLogin = new Button(12, "Login");
+	btnLogin->width = 58; btnLogin->height = 22; btnLogin->visible = false;
+	btnRegister = new Button(13, "Register");
+	btnRegister->width = 58; btnRegister->height = 22; btnRegister->visible = false;
+	btnLogout = new Button(14, "Logout");
+	btnLogout->width = 80; btnLogout->height = 22; btnLogout->visible = false;
+	btnUploadSkin = new Button(15, "Upload Skin");
+	btnUploadSkin->width = 80; btnUploadSkin->height = 22; btnUploadSkin->visible = false;
+	btnChangeUsername = new Button(16, "Change Username");
+	btnChangeUsername->width = 120; btnChangeUsername->height = 22; btnChangeUsername->visible = false;
+
 	def.setSrc(IntRectangle(150, 0, (int)def.width, (int)def.height));
 	btnClose->setImageDef(def, true);
 
@@ -145,7 +222,7 @@ void OptionsScreen::init() {
 	b = new Touch::TButton(3, I18n::get("options.category.game"));     b->width = 80; b->height = 28; categoryButtons.push_back(b);
 	b = new Touch::TButton(4, I18n::get("options.category.controls")); b->width = 80; b->height = 28; categoryButtons.push_back(b);
 	b = new Touch::TButton(5, I18n::get("options.category.graphics")); b->width = 80; b->height = 28; categoryButtons.push_back(b);
-	b = new Touch::TButton(6, "Skin");  b->width = 80; b->height = 28; categoryButtons.push_back(b);
+	b = new Touch::TButton(6, "Account"); b->width = 80; b->height = 28; categoryButtons.push_back(b);
 	buttons.push_back(bHeader);
 	buttons.push_back(btnClose);
 	for(std::vector<Touch::TButton*>::iterator it = categoryButtons.begin(); it != categoryButtons.end(); ++it) {
@@ -156,11 +233,13 @@ void OptionsScreen::init() {
 
 }
 void OptionsScreen::keyboardNewChar(char inputChar) {
-    if (txtUsername && txtUsername->focused) {
-        if (inputChar >= 32 && inputChar < 127 && (int)txtUsername->text.size() < 14) {
-            txtUsername->text += inputChar;
-        }
-    }
+    if (inputChar < 32 || inputChar >= 127) return;
+    if (txtUsername && txtUsername->focused && (int)txtUsername->text.size() < 25)
+        txtUsername->text += inputChar;
+    if (txtPassword && txtPassword->focused && (int)txtPassword->text.size() < 64)
+        txtPassword->text += inputChar;
+    if (txtNewUsername && txtNewUsername->focused && (int)txtNewUsername->text.size() < 25)
+        txtNewUsername->text += inputChar;
 }
 void OptionsScreen::setupPositions() {
 	int headerH = btnClose->height;
@@ -202,11 +281,18 @@ void OptionsScreen::setupPositions() {
 		btnAlexSkin->x = width - 36;
 		btnAlexSkin->y = headerH2 + 140;
 	}
-	if (txtUsername) {
-		int catW2 = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
-		int headerH2 = (bHeader != NULL) ? bHeader->height : 26;
-		txtUsername->x = catW2 + 6;
-		txtUsername->y = headerH2 + 170;
+	{
+		int cW = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
+		int hH = (bHeader != NULL) ? bHeader->height : 26;
+		int cx = cW + 6;
+		if (txtUsername)      { txtUsername->x      = cx;      txtUsername->y      = hH + 54; }
+		if (txtPassword)      { txtPassword->x      = cx;      txtPassword->y      = hH + 90; }
+		if (btnLogin)         { btnLogin->x         = cx;      btnLogin->y         = hH + 120; }
+		if (btnRegister)      { btnRegister->x      = cx + 62; btnRegister->y      = hH + 120; }
+		if (txtNewUsername)   { txtNewUsername->x   = cx;      txtNewUsername->y   = hH + 72; }
+		if (btnChangeUsername){ btnChangeUsername->x = cx;     btnChangeUsername->y = hH + 100; }
+		if (btnUploadSkin)   { btnUploadSkin->x    = cx;      btnUploadSkin->y    = hH + 128; }
+		if (btnLogout)       { btnLogout->x        = cx;      btnLogout->y        = hH + 156; }
 	}
 }
 
@@ -269,27 +355,45 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 	if(currentOptionPane != NULL)
 		currentOptionPane->render(minecraft, xmm, ymm);
 	if (selectedCategory == 4) {
-		int catW = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
-		int headerH = (bHeader != NULL) ? bHeader->height : 26;
-		std::string homePath = std::string(getenv("HOME")) + "/.minecraft_skin.png";
-		std::string current = minecraft->options.skinPath.empty() ? "Default (char.png)" : minecraft->options.skinPath;
-		minecraft->font->drawShadow("Current skin:", (float)(catW + 6), (float)(headerH + 30), 0xffffffff);
-		minecraft->font->drawShadow(current, (float)(catW + 6), (float)(headerH + 42), 0xffaaaaaa);
-		minecraft->font->drawShadow("Place skin PNG at:", (float)(catW + 6), (float)(headerH + 62), 0xffffffff);
-		minecraft->font->drawShadow(homePath, (float)(catW + 6), (float)(headerH + 74), 0xffaaaaaa);
-		minecraft->font->drawShadow("[Press R to reload skin]", (float)(catW + 6), (float)(headerH + 94), 0xffcccccc);
-	}
-	if (selectedCategory == 4 && btnBrowseSkin && btnBrowseSkin->visible)
-    	btnBrowseSkin->render(minecraft, xm, ym);
+		int cW = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
+		int hH = (bHeader != NULL) ? bHeader->height : 26;
+		float cx = (float)(cW + 6);
+		bool loggedIn = !minecraft->options.accountToken.empty();
 
-	if (selectedCategory == 4 && btnAlexSkin && btnAlexSkin->visible) {
-		btnAlexSkin->render(minecraft, xm, ym);
-		minecraft->font->drawShadow(I18n::get("options.alexSkin"), (float)(catW + 6), (float)(btnAlexSkin->y + 6), 0xe0e0e0);
-	}
+		if (!loggedIn) {
+			minecraft->font->drawShadow("Login or Register", cx, (float)(hH + 34), 0xffffffff);
+			minecraft->font->drawShadow("Username:", cx, (float)(hH + 44), 0xffcccccc);
+			if (txtUsername) txtUsername->render(minecraft, xm, ym);
+			minecraft->font->drawShadow("Password:", cx, (float)(hH + 80), 0xffcccccc);
+			if (txtPassword) {
+				// Draw password field with masked text, matching TextBox::render() style
+				int bx = txtPassword->x, by = txtPassword->y;
+				fill(bx - 1, by - 1, bx + txtPassword->w + 1, by + txtPassword->h + 1, 0xffa0a0a0);
+				fill(bx, by, bx + txtPassword->w, by + txtPassword->h, 0xff000000);
+				std::string masked(txtPassword->text.size(), '*');
+				if (txtPassword->focused) masked += "_";
+				minecraft->font->drawShadow(masked, (float)(bx + 2), (float)(by + (txtPassword->h - 8) / 2), 0xffffffff);
+			}
+			if (btnLogin) btnLogin->render(minecraft, xm, ym);
+			if (btnRegister) btnRegister->render(minecraft, xm, ym);
+		} else {
+			std::string loggedAs = "Logged in as: " + minecraft->options.accountUsername;
+			minecraft->font->drawShadow(loggedAs, cx, (float)(hH + 34), 0xff88ff88);
+			minecraft->font->drawShadow("New username:", cx, (float)(hH + 62), 0xffcccccc);
+			if (txtNewUsername) txtNewUsername->render(minecraft, xm, ym);
+			if (btnChangeUsername) btnChangeUsername->render(minecraft, xm, ym);
+			if (btnUploadSkin) btnUploadSkin->render(minecraft, xm, ym);
+			if (btnLogout) btnLogout->render(minecraft, xm, ym);
 
-	if (selectedCategory == 4 && txtUsername) {
-    minecraft->font->drawShadow("Username:", (float)txtUsername->x, (float)(txtUsername->y - 10), 0xffffffff);
-    txtUsername->render(minecraft, xm, ym);
+			// Skin preview — head face to the right of the buttons
+			float px = cx + 160, py = (float)(hH + 34);
+			float psize = 64;
+			fill((int)px - 3, (int)py - 3, (int)(px + psize + 3), (int)(py + psize + 3), 0x88000000);
+			drawSkinPreview(minecraft, minecraft->options.skinPath, px, py, psize);
+			minecraft->font->drawShadow("Skin Preview", px, py + psize + 4, 0xffaaaaaa);
+		}
+		if (!_accountStatus.empty())
+			minecraft->font->drawShadow(_accountStatus, cx, (float)(hH + 186), 0xffff8844);
 	}
 }
 
@@ -315,17 +419,17 @@ void OptionsScreen::buttonClicked(Button* button) {
 				if (len > 0 && path[len-1] == '\n') path[len-1] = 0;
 					if (strlen(path) > 0) {
 						std::string skinPath = std::string(path);
-						
+
 						minecraft->options.skinPath = skinPath;
 						minecraft->options.save();
 
 						if (minecraft->player) {
 							// Remove old skin from cache so it gets re-fetched
 							minecraft->textures->reloadTexture(minecraft->player->getSkinTexture());
-							
+
 							// Point player to new skin file
 							minecraft->player->setSkinTexture(skinPath);
-							
+
 							// Pre-load the new texture now
 							TextureData td = minecraft->platform()->loadTexture(skinPath, false);
 							if (td.data != NULL) {
@@ -336,6 +440,82 @@ void OptionsScreen::buttonClicked(Button* button) {
 					}
 			}
 			pclose(f);
+		}
+	}
+	if (button == btnLogin || button == btnRegister) {
+		std::string user = txtUsername ? txtUsername->text : "";
+		std::string pass = txtPassword ? txtPassword->text : "";
+		if (user.empty() || pass.empty()) { _accountStatus = "Enter username and password."; return; }
+		std::string token;
+		if (button == btnLogin)
+			token = BackendClient::login(minecraft->options.backendUrl, user, pass);
+		else
+			token = BackendClient::registerUser(minecraft->options.backendUrl, user, pass);
+		if (!token.empty()) {
+			minecraft->options.accountToken = token;
+			minecraft->options.accountUsername = user;
+			minecraft->options.username = user;
+			minecraft->options.save();
+			if (minecraft->user) minecraft->user->name = user;
+			if (txtPassword) txtPassword->text = "";
+			_accountStatus = (button == btnLogin) ? "Logged in!" : "Registered!";
+			selectCategory(4); // refresh visibility
+		} else {
+			_accountStatus = (button == btnLogin) ? "Login failed." : "Register failed (name taken?).";
+		}
+	}
+	if (button == btnLogout) {
+		minecraft->options.accountToken = "";
+		minecraft->options.accountUsername = "";
+		minecraft->options.save();
+		_accountStatus = "Logged out.";
+		selectCategory(4);
+	}
+	if (button == btnChangeUsername) {
+		std::string newName = txtNewUsername ? txtNewUsername->text : "";
+		if (newName.empty()) { _accountStatus = "Enter a new username."; return; }
+		std::string result = BackendClient::changeUsername(minecraft->options.backendUrl,
+		                                                   minecraft->options.accountToken, newName);
+		if (!result.empty()) {
+			minecraft->options.accountUsername = result;
+			minecraft->options.username = result;
+			minecraft->options.save();
+			if (minecraft->user) minecraft->user->name = result;
+			if (txtNewUsername) txtNewUsername->text = "";
+			_accountStatus = "Username changed to: " + result;
+		} else {
+			_accountStatus = "Change failed (name taken?).";
+		}
+	}
+	if (button == btnUploadSkin) {
+		FILE* f = popen("zenity --file-selection --file-filter='PNG files | *.png' 2>/dev/null", "r");
+		if (!f) { _accountStatus = "Could not open file picker."; return; }
+		char path[512] = {0};
+		bool picked = false;
+		if (fgets(path, sizeof(path), f)) {
+			int len = strlen(path);
+			if (len > 0 && path[len-1] == '\n') path[len-1] = 0;
+			picked = strlen(path) > 0;
+		}
+		pclose(f);
+		if (!picked) return;
+		std::string skinPath(path);
+		bool ok = BackendClient::uploadSkin(minecraft->options.backendUrl,
+		                                    minecraft->options.accountToken, skinPath);
+		if (ok) {
+			minecraft->options.skinPath = skinPath;
+			minecraft->options.save();
+			if (minecraft->player) {
+				TextureData td = minecraft->platform()->loadTexture(skinPath, false);
+				if (td.data) {
+					minecraft->textures->assignTexture(skinPath, td);
+					delete[] td.data;
+				}
+				minecraft->player->setSkinTexture(skinPath);
+			}
+			_accountStatus = "Skin uploaded!";
+		} else {
+			_accountStatus = "Upload failed.";
 		}
 	}
 }
@@ -355,18 +535,25 @@ void OptionsScreen::selectCategory( int index ) {
         currentOptionPane = optionPanes[index];
 
     if (btnBrowseSkin)
-        btnBrowseSkin->visible = (selectedCategory == 4);
+        btnBrowseSkin->visible = false;
     if (btnAlexSkin)
-        btnAlexSkin->visible = (selectedCategory == 4);
+        btnAlexSkin->visible = false;
+
+    bool onAccount = (selectedCategory == 4);
+    bool loggedIn = onAccount && minecraft && !minecraft->options.accountToken.empty();
+    if (btnLogin)         btnLogin->visible         = onAccount && !loggedIn;
+    if (btnRegister)      btnRegister->visible      = onAccount && !loggedIn;
+    if (btnLogout)        btnLogout->visible        = loggedIn;
+    if (btnUploadSkin)    btnUploadSkin->visible    = loggedIn;
+    if (btnChangeUsername) btnChangeUsername->visible = loggedIn;
 }
 
 void OptionsScreen::keyPressed(int key) {
     fflush(stdout);
-    if (txtUsername && txtUsername->focused) {
-		if (key == Keyboard::KEY_BACKSPACE && !txtUsername->text.empty()) {
-			txtUsername->text.pop_back();
-			return;
-		}
+    if (key == Keyboard::KEY_BACKSPACE) {
+        if (txtUsername && txtUsername->focused && !txtUsername->text.empty()) { txtUsername->text.pop_back(); return; }
+        if (txtPassword && txtPassword->focused && !txtPassword->text.empty()) { txtPassword->text.pop_back(); return; }
+        if (txtNewUsername && txtNewUsername->focused && !txtNewUsername->text.empty()) { txtNewUsername->text.pop_back(); return; }
     }
     if (key == Keyboard::KEY_R && selectedCategory == 4) {
         std::string homePath = std::string(getenv("HOME")) + "/.minecraft_skin.png";
@@ -470,8 +657,24 @@ void OptionsScreen::mouseClicked( int x, int y, int buttonNum ) {
 			currentOptionPane->mouseClicked(minecraft, x, y, buttonNum);
 		super::mouseClicked(x, y, buttonNum);
 	}
-	if (txtUsername && selectedCategory == 4)
-    txtUsername->setFocus(minecraft);
+	if (selectedCategory == 4) {
+		// Clear all account textbox focus first, then set focus on the clicked one
+		auto clearAccountFocus = [&]() {
+			if (txtUsername)    txtUsername->focused    = false;
+			if (txtPassword)    txtPassword->focused    = false;
+			if (txtNewUsername) txtNewUsername->focused = false;
+		};
+		auto inBox = [](TextBox* b, int px, int py) {
+			return b && px >= b->x && px < b->x + b->w && py >= b->y && py < b->y + b->h;
+		};
+		bool loggedIn = !minecraft->options.accountToken.empty();
+		if (!loggedIn) {
+			if (inBox(txtUsername, x, y))   { clearAccountFocus(); txtUsername->setFocus(minecraft); }
+			else if (inBox(txtPassword, x, y)) { clearAccountFocus(); txtPassword->setFocus(minecraft); }
+		} else {
+			if (inBox(txtNewUsername, x, y)) { clearAccountFocus(); txtNewUsername->setFocus(minecraft); }
+		}
+	}
 }
 
 void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
@@ -509,6 +712,17 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
         }
     }
 
+    auto accountBtnHit = [&](Button* btn) -> bool {
+        return btn && btn->visible && buttonNum == 1 &&
+               x >= btn->x && x < btn->x + btn->width &&
+               y >= btn->y && y < btn->y + btn->height;
+    };
+    if (accountBtnHit(btnLogin))          { buttonClicked(btnLogin);         clickedButton = NULL; return; }
+    if (accountBtnHit(btnRegister))       { buttonClicked(btnRegister);      clickedButton = NULL; return; }
+    if (accountBtnHit(btnLogout))         { buttonClicked(btnLogout);        clickedButton = NULL; return; }
+    if (accountBtnHit(btnUploadSkin))     { buttonClicked(btnUploadSkin);    clickedButton = NULL; return; }
+    if (accountBtnHit(btnChangeUsername)) { buttonClicked(btnChangeUsername); clickedButton = NULL; return; }
+
     if (x >= 0 && x < catW && y >= sidebarTop) {
         int adjustedY = y + (int)_catScrollY;
         for (size_t i = 0; i < categoryButtons.size(); ++i) {
@@ -545,12 +759,22 @@ void OptionsScreen::tick() {
 	if(currentOptionPane != NULL)
 		currentOptionPane->tick(minecraft);
 	super::tick();
-	if (txtUsername && selectedCategory == 4) {
-		if (txtUsername->text != minecraft->options.username) {
-			minecraft->options.username = txtUsername->text;
-			minecraft->options.save();
-			if (minecraft->user)
-				minecraft->user->name = txtUsername->text;
+	if (selectedCategory == 4) {
+		bool loggedIn = !minecraft->options.accountToken.empty();
+		if (loggedIn) {
+			// Keep in-game name locked to account username
+			if (minecraft->options.username != minecraft->options.accountUsername) {
+				minecraft->options.username = minecraft->options.accountUsername;
+				minecraft->options.save();
+				if (minecraft->user) minecraft->user->name = minecraft->options.accountUsername;
+			}
+		} else if (txtUsername) {
+			// Sync username field to options when not logged in
+			if (txtUsername->text != minecraft->options.username) {
+				minecraft->options.username = txtUsername->text;
+				minecraft->options.save();
+				if (minecraft->user) minecraft->user->name = txtUsername->text;
+			}
 		}
 	}
 }

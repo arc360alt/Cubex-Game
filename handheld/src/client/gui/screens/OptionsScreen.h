@@ -37,6 +37,14 @@ private:
 	Button* btnBrowseSkin;
 	OptionButton* btnAlexSkin;
 	TextBox* txtUsername;
+	Button* btnLogin;
+	Button* btnRegister;
+	Button* btnLogout;
+	Button* btnUploadSkin;
+	Button* btnChangeUsername;
+	TextBox* txtPassword;
+	TextBox* txtNewUsername;
+	std::string _accountStatus;
 	int selectedCategory;
 
 	// Sidebar scroll state

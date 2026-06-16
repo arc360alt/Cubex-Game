@@ -51,6 +51,7 @@ class ContainerSetDataPacket;
 class ContainerSetContentPacket;
 class ChatPacket;
 class SignUpdatePacket;
+class SetPlayerSkinPacket;
 class Minecraft;
 class Level;
 
@@ -121,6 +122,7 @@ public:
 	virtual void handle(const RakNet::RakNetGUID& source, SignUpdatePacket* packet) {}
 	virtual void handle(const RakNet::RakNetGUID& source, AdventureSettingsPacket* packet) {}
 	virtual void handle(const RakNet::RakNetGUID& source, AnimatePacket* packet) {}
+	virtual void handle(const RakNet::RakNetGUID& source, SetPlayerSkinPacket* packet) {}
 
 	//
 	// Common implementation for Client and Server

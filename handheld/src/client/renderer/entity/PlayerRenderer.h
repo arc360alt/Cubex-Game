@@ -14,12 +14,15 @@ public:
 
 	virtual void setupPosition(Entity* mob, float x, float y, float z);
 	virtual void setupRotations(Entity* mob, float bob, float bodyRot, float a);
+	virtual void render(Entity* mob, float x, float y, float z, float rot, float a);
 
 	virtual void renderName(Mob* mob, float x, float y, float z);
 	virtual void onGraphicsReset();
 private:
+	HumanoidModel* playerModel;   // same pointer held by MobRenderer, cast for direct access
 	HumanoidModel* armorParts1;
 	HumanoidModel* armorParts2;
+	std::string    lastSkinName;  // cached so we only query texture dimensions on change
 };
 
 

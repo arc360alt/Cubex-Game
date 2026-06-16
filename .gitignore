@@ -50,3 +50,6 @@ mcpe_server
 minecraftpe
 
 .claude
+
+accounts.db
+backend/skins

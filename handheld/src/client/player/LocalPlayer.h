@@ -97,7 +97,6 @@ private:
 
 	int sentInventoryItemId;
 	int sentInventoryItemData;
-	int _inventorySyncTick;
 
 	int armorTypeHash;
 	bool isSprinting;

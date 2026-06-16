@@ -20,11 +20,22 @@ public:
 	void reinitArms(bool isAlex);
 	void checkSkinType();
 
+	// Switch between 64x32 (pre-1.8) and 64x64 (1.8+) skin formats.
+	// Rebuilds UV-dependent geometry and shows/hides overlay parts accordingly.
+	void setSkinIs64(bool is64);
+
 	float g_val;
 	float yOffset_val;
 	int lastSkinType; // 0 = Steve, 1 = Alex
+	bool skinIs64;    // true when the current skin texture is 64x64
 
-	ModelPart head, /*hair,*/ body, arm0, arm1, leg0, leg1;//, ear;
+	// Base layer parts (used in both skin formats).
+	ModelPart head, body, arm0, arm1, leg0, leg1;
+	// Head overlay (hat): exists in both 64x32 and 64x64.
+	ModelPart hat;
+	// Body/arm/leg overlays: only visible in 64x64 skins.
+	ModelPart bodyOverlay, arm0Overlay, arm1Overlay, leg0Overlay, leg1Overlay;
+
 	bool holdingLeftHand;
 	bool holdingRightHand;
 	bool sneaking;

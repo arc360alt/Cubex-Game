@@ -538,7 +538,8 @@ void ExternalFileLevelStorage::save(Level* level, LevelChunk* levelChunk)
 
 	chunkData.Write((const char*)levelChunk->updateMap, CHUNK_COLUMNS);
 
-	rf->writeChunk(lx, lz, chunkData);
+	if (rf->writeChunk(lx, lz, chunkData))
+		levelChunk->unsaved = false; // cleared so shouldSave() returns false until the next block change
 
 	//LOGI("Saved chunk (%d, %d)\n", levelChunk->x, levelChunk->z);
 }
