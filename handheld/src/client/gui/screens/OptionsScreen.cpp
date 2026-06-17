@@ -5,7 +5,13 @@
 #include "../../Minecraft.h"
 #include "../../../AppPlatform.h"
 #include "../../../locale/I18n.h"
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
 #include "../../player/LocalPlayer.h"
 #include "../../sound/SoundEngine.h"
 #include "../../renderer/Textures.h"

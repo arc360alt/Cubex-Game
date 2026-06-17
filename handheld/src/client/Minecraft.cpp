@@ -1,5 +1,12 @@
 #include "Minecraft.h"
 #include <cstdlib>
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
 
 #if defined(APPLE_DEMO_PROMOTION)
     #define NO_NETWORK

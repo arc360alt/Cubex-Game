@@ -37,7 +37,13 @@
 #include "../client/BackendClient.h"
 #endif
 #include <cstring>
+#ifndef _WIN32
 #include <unistd.h>
+#else
+#include <io.h>
+#define F_OK 0
+#define access _access
+#endif
 
 static MultiPlayerLevel* mpcast(Level* l) { return (MultiPlayerLevel*) l; }
 
