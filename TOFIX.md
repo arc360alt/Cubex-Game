@@ -1,8 +1,6 @@
 - Make inventory navigation better on PC, and make alot of the UI better on PC too
 - Switching from creative to survival does not remove extra inventory slots
 - Fix hunger system being completly broken
-- Fix the lighting engine (make light updates more optimized, fix the wierd dark spots everywhere, fix chunks not updating thier lighitng while changing to night/day)
 - **Make the game work with Windows and other operating systems.**
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
-- Fix slabs chaning thier position as an upper or lower slab and their textures breaking and messing up when other blocks near it are changed
