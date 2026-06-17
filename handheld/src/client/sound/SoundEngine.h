@@ -25,7 +25,7 @@ class SoundEngine
 
 	#if defined(ANDROID) && !defined(PRE_ANDROID23)
 		SoundSystemSL soundSystem;
-	#elif defined(RPI) || defined(_WIN32)
+	#elif defined(RPI) || defined(_WIN32) || defined(STANDALONE_SERVER)
 	    SoundSystem soundSystem;
 	#else
         SoundSystemAL soundSystem;

@@ -142,17 +142,17 @@ jobs:
           name: minecraftpe-android-release
           path: handheld/project/android/build/outputs/apk/release/*.apk
 
-  # ── Dedicated server (Linux x86, 32-bit) ──────────────────────────────────
+  # ── Dedicated server (Linux x86_64) ───────────────────────────────────────
   dedicated-server:
-    name: Dedicated server (Linux x86)
+    name: Dedicated server (Linux x86_64)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install 32-bit toolchain
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y gcc-multilib g++-multilib cmake
+          sudo apt-get install -y cmake
 
       - name: Configure
         working-directory: handheld/project/dedicated_server
