@@ -1,4 +1,4 @@
-# Minecraft PE Reborn
+# Cubex Game
 
 A leaked source code of **Minecraft Pocket Edition v0.6.1**. Ported to macOS and Linux, with Android modernizations and infinite world support and a rediculous amount of extra features and modernisations.
 
@@ -6,7 +6,7 @@ A leaked source code of **Minecraft Pocket Edition v0.6.1**. Ported to macOS and
 
 ---
 
-## New features added in Reborn
+## New features added in Cubex
 - Full hunger system with sprinting.
 - Even MORE Infinite world gen fixes
 - All items in the game will now be forced to be shown in the creative invemtory
@@ -31,7 +31,7 @@ If the issue your having is on that list, dont report it, ill eventualy get to f
 - Fix some wierd sky issues still occuring while underground and jumping
 
 # Docs:
-- [How to build PE Reborn](Building.md)
+- [How to build Cubex](Building.md)
 - [Extra notes](Extra-Notes.md)
 
 # Credits:
