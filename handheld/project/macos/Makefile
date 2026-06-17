@@ -6,11 +6,13 @@ CC     := clang++
 
 # ── Dependencies (Homebrew) ─────────────────────────────────────────────────
 # Install with:
-#   brew install sdl2 libpng zlib
+#   brew install sdl2 libpng zlib curl
 SDL2_CFLAGS  := $(shell sdl2-config --cflags)
 SDL2_LIBS    := $(shell sdl2-config --libs)
 PNG_CFLAGS   := $(shell pkg-config --cflags libpng 2>/dev/null || echo "-I/opt/homebrew/include")
 PNG_LIBS     := $(shell pkg-config --libs   libpng 2>/dev/null || echo "-lpng")
+CURL_CFLAGS  := $(shell pkg-config --cflags libcurl 2>/dev/null || echo "-I/opt/homebrew/opt/curl/include")
+CURL_LIBS    := $(shell pkg-config --libs   libcurl 2>/dev/null || echo "-L/opt/homebrew/opt/curl/lib -lcurl")
 
 # ── Build mode (debug|release) ────────────────────────────────────────────────
 # Usage:  make              (release, optimized)
@@ -31,6 +33,7 @@ CFLAGS := \
 	-DPOSIX \
 	$(SDL2_CFLAGS) \
 	$(PNG_CFLAGS) \
+	$(CURL_CFLAGS) \
 	-I$(SRCDIR) \
 	-I$(SRCDIR)/raknet \
 	-std=c++17 \
@@ -52,6 +55,7 @@ CFLAGS := \
 LDFLAGS := \
 	$(SDL2_LIBS) \
 	$(PNG_LIBS) \
+	$(CURL_LIBS) \
 	-framework OpenGL \
 	-framework OpenAL \
 	-framework Foundation \

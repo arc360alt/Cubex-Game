@@ -3,7 +3,7 @@
 
 #include <string>
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(_WIN32)
 
 class BackendClient {
 public:
@@ -211,6 +211,6 @@ private:
     }
 };
 
-#endif // __ANDROID__
+#endif // __ANDROID__ || _WIN32
 
 #endif // STANDALONE_SERVER
