@@ -2,6 +2,27 @@
 #ifndef STANDALONE_SERVER
 
 #include <string>
+
+#ifdef __ANDROID__
+
+class BackendClient {
+public:
+    struct Response {
+        std::string body;
+        long status = 0;
+    };
+    static Response post(const std::string&, const std::string&) { return {}; }
+    static Response get(const std::string&) { return {}; }
+    static std::string registerUser(const std::string&, const std::string&, const std::string&) { return ""; }
+    static std::string login(const std::string&, const std::string&, const std::string&) { return ""; }
+    static std::string verifyToken(const std::string&, const std::string&) { return ""; }
+    static std::string changeUsername(const std::string&, const std::string&, const std::string&) { return ""; }
+    static bool uploadSkin(const std::string&, const std::string&, const std::string&) { return false; }
+    static bool downloadSkin(const std::string&, const std::string&, const std::string&) { return false; }
+};
+
+#else
+
 #include <curl/curl.h>
 #include <fstream>
 
@@ -189,5 +210,7 @@ private:
         return result;
     }
 };
+
+#endif // __ANDROID__
 
 #endif // STANDALONE_SERVER

@@ -19,9 +19,12 @@
 #include "../../renderer/gles.h"
 #include "../../../platform/input/Mouse.h"
 #include "../../../util/Mth.h"
+#ifndef __ANDROID__
 #include <png.h>
+#endif
 #include "../components/TextBox.h"
 
+#ifndef __ANDROID__
 static bool loadPNG(const std::string& path, TextureData& out) {
     FILE* fp = fopen(path.c_str(), "rb");
     if (!fp) return false;
@@ -62,6 +65,7 @@ static bool loadPNG(const std::string& path, TextureData& out) {
     fclose(fp);
     return true;
 }
+#endif
 // Draws one UV region of a skin texture as a scaled quad
 static void drawSkinRegion(Textures* textures, TextureId texId,
                            float dx, float dy, float dw, float dh,

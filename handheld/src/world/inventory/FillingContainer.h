@@ -102,6 +102,7 @@ protected:
 	ItemList items;
 
 	bool _isCreative;
+	int _creativeSaveLimit; // numTotalSlots snapshot before addItem() expands it for picker items
 };
 
 #endif /*NET_MINECRAFT_WORLD_INVENTORY__FILLINGCONTAINER_H__*/

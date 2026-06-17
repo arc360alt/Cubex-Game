@@ -622,6 +622,20 @@ void Minecraft::tick(int nTick, int maxTick) {
 			level->difficulty = options.difficulty;
 			if (level->isClientSide) level->difficulty = Difficulty::EASY;
 
+			// One-time log per world join
+			static Level* _lastLoggedLevel = nullptr;
+			if (level != _lastLoggedLevel) {
+				_lastLoggedLevel = level;
+				const char* diffName =
+					level->difficulty == Difficulty::PEACEFUL ? "PEACEFUL" :
+					level->difficulty == Difficulty::EASY     ? "EASY"     :
+					level->difficulty == Difficulty::NORMAL   ? "NORMAL"   :
+					level->difficulty == Difficulty::HARD     ? "HARD"     : "UNKNOWN";
+				LOGI("[DEBUG] Level on join: difficulty=%d(%s) isClientSide=%d options.difficulty=%d gameType=%d spawnMobs=%d\n",
+					level->difficulty, diffName, (int)level->isClientSide, options.difficulty,
+					level->getLevelData()->getGameType(), (int)level->getLevelData()->getSpawnMobs());
+			}
+
 			TIMER_POP_PUSH("level");
 			level->tickEntities();
 			level->tick();

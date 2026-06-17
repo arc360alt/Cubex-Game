@@ -18,6 +18,7 @@ public:
 	int getColor(int auxData);
 	int getColor(LevelSource* level, int x, int y, int z);
 	int getResource(int data, Random* random);
+	void destroy(Level* level, int x, int y, int z, int data);
 	void playerDestroy(Level* level, Player* player, int x, int y, int z, int data);
 };
 

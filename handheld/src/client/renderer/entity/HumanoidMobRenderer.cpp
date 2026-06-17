@@ -20,14 +20,29 @@ void HumanoidMobRenderer::renderHand() {
 	humanoidModel->attackTime = 0;
 	humanoidModel->setupAnim(0, 0, 0, 0, 0, 1 / 16.0f);
 
-	//@attn @cuberender @enableClientState @vertexarray
 	glEnableClientState2(GL_VERTEX_ARRAY);
 	glEnableClientState2(GL_TEXTURE_COORD_ARRAY);
-	//glEnableClientState2(GL_COLOR_ARRAY); 
 	humanoidModel->arm0.render(1 / 16.0f);
+
+	// Render the sleeve overlay (arm0Overlay) with alpha blending.
+	// Only visible on 64x64 skins; skipped automatically via the visible flag.
+	ModelPart& overlay = humanoidModel->arm0Overlay;
+	ModelPart& base    = humanoidModel->arm0;
+	if (overlay.visible) {
+		overlay.x    = base.x;    overlay.y    = base.y;    overlay.z    = base.z;
+		overlay.xRot = base.xRot; overlay.yRot = base.yRot; overlay.zRot = base.zRot;
+		glEnable2(GL_BLEND);
+		glBlendFunc2(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		overlay.render(1 / 16.0f);
+		glDisable2(GL_BLEND);
+	}
+
 	glDisableClientState2(GL_VERTEX_ARRAY);
 	glDisableClientState2(GL_TEXTURE_COORD_ARRAY);
-	//glDisableClientState2(GL_COLOR_ARRAY); 
+}
+
+void HumanoidMobRenderer::syncSkinIs64(bool is64) {
+	humanoidModel->setSkinIs64(is64);
 }
 
 void HumanoidMobRenderer::additionalRendering(Mob* mob, float a) {

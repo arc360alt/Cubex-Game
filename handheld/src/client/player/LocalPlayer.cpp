@@ -115,12 +115,10 @@ void LocalPlayer::tick() {
 				spawnEatParticles(item, 5);
 			}
 			if(--useItemDuration == 0) {
-				if(!level->isClientSide) {
-					completeUsingItem();
-				} else {
-					printf("[DEBUG] cancel: item=%p item->id=%d useItem.id=%d useItem.isNull=%d\n",
-						item, item ? item->id : -1, useItem.id, useItem.isNull());
-					stopUsingItem();
+				completeUsingItem();
+				if (minecraft->isOnline()) {
+					EntityEventPacket eatPkt(entityId, EntityEvent::USE_ITEM_COMPLETE);
+					minecraft->raknetInstance->send(eatPkt);
 				}
 			}
 		}

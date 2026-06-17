@@ -366,6 +366,11 @@ void ItemInHandRenderer::render( float a )
 		HumanoidMobRenderer* playerRenderer = (HumanoidMobRenderer*) er;
 		float ss = 1;
 		glScalef2(ss, ss, ss);
+		{
+			TextureId skinTexId = mc->textures->loadTexture(mc->player->getSkinTexture());
+			const TextureData* td = mc->textures->getTemporaryTextureData(skinTexId);
+			playerRenderer->syncSkinIs64(td && td->h >= 64);
+		}
 		playerRenderer->renderHand();
 		glPopMatrix2();
 	}

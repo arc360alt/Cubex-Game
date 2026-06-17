@@ -514,7 +514,7 @@ bool Player::isShootable() {
 }
 
 bool Player::isCreativeModeAllowed() {
-    return true;
+    return abilities.instabuild;
 }
 
 //void Player::drop() {

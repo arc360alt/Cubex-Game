@@ -155,6 +155,7 @@ Tile* Tile::stairs_netherBricks   = NULL;
 Tile* Tile::stairs_sandStone   = NULL;
 Tile* Tile::quartzBlock   = NULL;
 Tile* Tile::stairs_quartz   = NULL;
+Tile* Tile::hayBale       = NULL;
 
 /*static*/
 void Tile::initTiles() {
@@ -254,6 +255,8 @@ void Tile::initTiles() {
 
 	quartzBlock   = (new QuartzBlockTile(155))->init()->setSoundType(SOUND_STONE)->setDestroyTime(0.8f)->setCategory(ItemCategory::Structures)->setDescriptionId("quartzBlock");
 	stairs_quartz = (new StairTile(156, Tile::quartzBlock))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsQuartz");//->sendTileData();
+	// terrain.png column 4, row 12 (index 196) = top/bottom; column 5, row 12 (index 197) = side
+	hayBale       = (new HayBaleTile(157, 4 + 12*16, 5 + 12*16))->init()->setSoundType(SOUND_GRASS)->setDestroyTime(0.5f)->setCategory(ItemCategory::Structures)->setDescriptionId("hayBale");
 
 	//
 	// Special tiles for Pocket Edition is placed at high IDs

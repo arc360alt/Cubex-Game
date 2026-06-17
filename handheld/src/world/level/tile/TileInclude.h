@@ -21,6 +21,7 @@
 #include "FurnaceTile.h"
 #include "GlassTile.h"
 #include "GrassTile.h"
+#include "HayBaleTile.h"
 #include "GravelTile.h"
 #include "HeavyTile.h"
 #include "IceTile.h"

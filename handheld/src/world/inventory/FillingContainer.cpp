@@ -17,7 +17,8 @@ FillingContainer::FillingContainer(
 	numTotalSlots(numTotalSlots),
 	numLinkedSlots(numLinkedSlots),
 	linkedSlots(NULL),
-	_isCreative(isCreative)
+	_isCreative(isCreative),
+	_creativeSaveLimit(numTotalSlots)
 {
 	if (numLinkedSlots > 0)
 		linkedSlots = new LinkedSlot[numLinkedSlots];
@@ -193,7 +194,9 @@ ListTag* FillingContainer::save( ListTag* listTag )
 {
 	//LOGI("Save.inv-creative? %d. Size %d\n", _isCreative, items.size());
 	ItemInstance selTmp;
-	for (int i = 0; i < (int)items.size(); i++) {
+	int saveLimit = _isCreative ? _creativeSaveLimit : (int)items.size();
+	if (saveLimit > (int)items.size()) saveLimit = (int)items.size();
+	for (int i = 0; i < saveLimit; i++) {
 		ItemInstance* item = items[i];
 
 		if (i < numLinkedSlots) {

@@ -42,14 +42,14 @@ int TallGrass::getResource( int data, Random* random ) {
 	return -1;
 }
 
+void TallGrass::destroy( Level* level, int x, int y, int z, int data ) {
+	spawnResources(level, x, y, z, data);
+}
+
 void TallGrass::playerDestroy( Level* level, Player* player, int x, int y, int z, int data ) {
 	if (!level->isClientSide && player->getSelectedItem() != NULL && player->getSelectedItem()->id == Item::shears->id) {
-		//player->awardStat(Stats.blockMined[id], 1);
-
-		// drop leaf block instead of sapling
 		ItemInstance itemInstance(Tile::tallgrass, 1, data);
 		popResource(level, x, y, z, itemInstance);
-	} else {
-		super::playerDestroy(level, player, x, y, z, data);
 	}
+	// seeds already handled by destroy(), called before playerDestroy in all modes
 }

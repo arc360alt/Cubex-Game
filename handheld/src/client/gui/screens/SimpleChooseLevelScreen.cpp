@@ -5,6 +5,7 @@
 #include "../../../world/level/LevelSettings.h"
 #include "../../../platform/time.h"
 #include "../../../platform/input/Keyboard.h"
+#include "../../../platform/input/Mouse.h"
 #include "../../../util/StringUtils.h"
 
 static const char ILLEGAL_FILE_CHARACTERS[] = {
@@ -20,7 +21,9 @@ SimpleChooseLevelScreen::SimpleChooseLevelScreen(const std::string& levelName)
 	bOldWorld(0),
 	bInfiniteWorld(0),
 	tbWorldName(0),
+	tbSeed(0),
 	levelName(levelName),
+	seedText(""),
 	hasChosen(false),
 	step(0),
 	chosenGameType(-1)
@@ -37,6 +40,7 @@ SimpleChooseLevelScreen::~SimpleChooseLevelScreen()
 	delete bOldWorld;
 	delete bInfiniteWorld;
 	delete tbWorldName;
+	delete tbSeed;
 }
 
 void SimpleChooseLevelScreen::init()
@@ -51,6 +55,9 @@ void SimpleChooseLevelScreen::init()
 	tbWorldName   = new TextBox(10, levelName);
 	tbWorldName->w = 220;
 	tbWorldName->h = 24;
+	tbSeed        = new TextBox(11, "");
+	tbSeed->w     = 220;
+	tbSeed->h     = 24;
 
 	bTitle->msg = "World Name";
 	bCreative->visible = false; bCreative->active = false;
@@ -66,6 +73,7 @@ void SimpleChooseLevelScreen::init()
 	buttons.push_back(bOldWorld);
 	buttons.push_back(bInfiniteWorld);
 	textBoxes.push_back(tbWorldName);
+	textBoxes.push_back(tbSeed);
 
 	tabButtons.push_back(bBack);
 	tabButtons.push_back(bNameContinue);
@@ -94,10 +102,13 @@ void SimpleChooseLevelScreen::setupPositions()
 
 	tbWorldName->w = width - 40;
 	tbWorldName->x = 20;
-	tbWorldName->y = headerH + (height - headerH) / 2 - 28;
+	tbWorldName->y = headerH + (height - headerH) / 2 - 46;
+	tbSeed->w = width - 40;
+	tbSeed->x = 20;
+	tbSeed->y = tbWorldName->y + tbWorldName->h + 22;
 	bNameContinue->width = 120;
 	bNameContinue->x = width / 2 - bNameContinue->width / 2;
-	bNameContinue->y = tbWorldName->y + tbWorldName->h + 10;
+	bNameContinue->y = tbSeed->y + tbSeed->h + 10;
 
 	// Content buttons — two big buttons side by side in the center
 	const int btnW  = (width / 2) - 16;
@@ -127,6 +138,8 @@ void SimpleChooseLevelScreen::render( int xm, int ym, float a )
 	if (step == 0) {
 		drawCenteredString(minecraft->font, "Enter world name", width / 2, tbWorldName->y - 14, 0xffaaaaaa);
 		if (tbWorldName) tbWorldName->render(minecraft, xm, ym);
+		drawCenteredString(minecraft->font, "Seed (optional)", width / 2, tbSeed->y - 12, 0xffaaaaaa);
+		if (tbSeed) tbSeed->render(minecraft, xm, ym);
 		Screen::render(xm, ym, a);
 		glDisable2(GL_BLEND);
 		return;
@@ -181,6 +194,7 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
 		if (candidate.empty())
 			candidate = "world";
 		levelName = candidate;
+		seedText = tbSeed ? Util::stringTrim(tbSeed->text) : std::string();
 
 		step = 1;
 		bTitle->msg = "Game Mode";
@@ -188,6 +202,7 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
 		bCreative->visible = true; bCreative->active = true;
 		bSurvival->visible = true; bSurvival->active = true;
 		if (tbWorldName) tbWorldName->loseFocus(minecraft);
+		if (tbSeed) tbSeed->loseFocus(minecraft);
 		return;
 	}
 
@@ -227,7 +242,15 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
 		levelId = Util::stringReplace(levelId, std::string(1, ILLEGAL_FILE_CHARACTERS[i]), "");
 	if (levelId.empty()) levelId = "world";
 	levelId = getUniqueLevelName(levelId);
-	LevelSettings settings(getEpochTimeS(), chosenGameType, worldType);
+	int seed = getEpochTimeS();
+	if (!seedText.empty()) {
+		int tmpSeed;
+		if (sscanf(seedText.c_str(), "%d", &tmpSeed) > 0)
+			seed = tmpSeed;
+		else
+			seed = Util::hashCode(seedText);
+	}
+	LevelSettings settings(seed, chosenGameType, worldType);
 	minecraft->selectLevel(levelId, displayName, settings);
 	minecraft->hostMultiplayer();
 	minecraft->setScreen(new ProgressScreen());
@@ -236,18 +259,36 @@ void SimpleChooseLevelScreen::buttonClicked( Button* button )
 
 void SimpleChooseLevelScreen::keyboardNewChar(char inputChar)
 {
-	if (step != 0 || !tbWorldName || !tbWorldName->focused)
-		return;
+	if (step != 0) return;
 
-	if (inputChar >= 32 && inputChar < 127 && (int)tbWorldName->text.size() < 64)
-		tbWorldName->text += inputChar;
+	if (tbWorldName && tbWorldName->focused) {
+		if (inputChar >= 32 && inputChar < 127 && (int)tbWorldName->text.size() < 64)
+			tbWorldName->text += inputChar;
+	} else if (tbSeed && tbSeed->focused) {
+		if (inputChar >= 32 && inputChar < 127 && (int)tbSeed->text.size() < 32)
+			tbSeed->text += inputChar;
+	}
 }
 
 void SimpleChooseLevelScreen::keyPressed(int key)
 {
-	if (step == 0 && tbWorldName && tbWorldName->focused) {
+	if (step == 0) {
+		bool wFocus = tbWorldName && tbWorldName->focused;
+		bool sFocus = tbSeed && tbSeed->focused;
+
+		if (key == 9) { // Tab — switch focus between boxes
+			if (wFocus) {
+				tbWorldName->loseFocus(minecraft);
+				if (tbSeed) tbSeed->setFocus(minecraft);
+			} else {
+				if (tbSeed) tbSeed->loseFocus(minecraft);
+				if (tbWorldName) tbWorldName->setFocus(minecraft);
+			}
+			return;
+		}
 		if (key == Keyboard::KEY_BACKSPACE) {
-			if (!tbWorldName->text.empty()) tbWorldName->text.pop_back();
+			if (wFocus && !tbWorldName->text.empty()) tbWorldName->text.pop_back();
+			else if (sFocus && !tbSeed->text.empty()) tbSeed->text.pop_back();
 			return;
 		}
 		if (key == Keyboard::KEY_RETURN) {
@@ -257,6 +298,23 @@ void SimpleChooseLevelScreen::keyPressed(int key)
 	}
 
 	Screen::keyPressed(key);
+}
+
+void SimpleChooseLevelScreen::mouseClicked(int mx, int my, int btn)
+{
+	if (step == 0 && btn == MouseAction::ACTION_LEFT) {
+		auto inBox = [](TextBox* tb, int x, int y) {
+			return tb && x >= tb->x && x < tb->x + tb->w && y >= tb->y && y < tb->y + tb->h;
+		};
+		if (inBox(tbWorldName, mx, my)) {
+			if (tbSeed) tbSeed->loseFocus(minecraft);
+			tbWorldName->setFocus(minecraft);
+		} else if (inBox(tbSeed, mx, my)) {
+			if (tbWorldName) tbWorldName->loseFocus(minecraft);
+			tbSeed->setFocus(minecraft);
+		}
+	}
+	Screen::mouseClicked(mx, my, btn);
 }
 
 bool SimpleChooseLevelScreen::handleBackEvent(bool isDown) {

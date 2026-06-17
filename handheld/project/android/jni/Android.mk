@@ -41,6 +41,7 @@ LOCAL_SRC_FILES := ../../../src/main.cpp \
 ../../../src/client/gui/components/ScrollingPane.cpp \
 ../../../src/client/gui/components/Slider.cpp \
 ../../../src/client/gui/components/SmallButton.cpp \
+../../../src/client/gui/components/TextBox.cpp \
 ../../../src/client/gui/Font.cpp \
 ../../../src/client/gui/Gui.cpp \
 ../../../src/client/gui/GuiComponent.cpp \
@@ -234,6 +235,7 @@ LOCAL_SRC_FILES := ../../../src/main.cpp \
 ../../../src/world/level/tile/NetherReactorPattern.cpp \
 ../../../src/world/level/tile/StairTile.cpp \
 ../../../src/world/level/tile/StemTile.cpp \
+../../../src/world/level/tile/HayBaleTile.cpp \
 ../../../src/world/level/tile/StoneSlabTile.cpp \
 ../../../src/world/level/tile/TallGrass.cpp \
 ../../../src/world/level/tile/Tile.cpp \
@@ -262,6 +264,7 @@ LOCAL_CFLAGS := -Wno-psabi -Wno-c++11-narrowing -D_RAKNET_SUPPORT_FileOperations
 LOCAL_LDLIBS    := -llog -landroid -lEGL -lGLESv1_CM -lOpenSLES
 LOCAL_STATIC_LIBRARIES := android_native_app_glue
 
+LOCAL_CPP_FEATURES := rtti
 #LOCAL_CPP_FEATURES := exceptions
 
 include $(BUILD_SHARED_LIBRARY)

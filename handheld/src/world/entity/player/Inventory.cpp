@@ -320,6 +320,7 @@ void Inventory::setupDefault() {
 		addItem(new ItemInstance(Tile::cactus));
 		addItem(new ItemInstance(Tile::melon));
 		addItem(new ItemInstance(Item::reeds));
+		addItem(new ItemInstance(Tile::hayBale));
 		Sel[8] = addItem(new ItemInstance(Tile::sapling, 1, 0));
 		addItem(new ItemInstance(Tile::sapling, 1, 1));
 		addItem(new ItemInstance(Tile::sapling, 1, 2));

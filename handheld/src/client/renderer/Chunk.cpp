@@ -199,6 +199,7 @@ void Chunk::rebuildImpl(Tesselator& tArg, bool cpuOnly)
 		if (!renderNextLayer) break;
 	}
 
+#if defined(MACOS) || defined(LINUX) || defined(WIN32)
 	if (cpuOnly) {
 		for (int l = 0; l < NumLayers; ++l)
 			_cpuEmpty[l] = newEmpty[l];
@@ -206,12 +207,15 @@ void Chunk::rebuildImpl(Tesselator& tArg, bool cpuOnly)
 		_cpuSkyLit = LevelChunk::touchedSky;
 		_cpuCompiled = true;
 	} else {
+#endif
 		for (int l = 0; l < NumLayers; ++l)
 			empty[l] = newEmpty[l];
 		_empty = newAllEmpty;
 		skyLit = LevelChunk::touchedSky;
 		compiled = true;
+#if defined(MACOS) || defined(LINUX) || defined(WIN32)
 	}
+#endif
 }
 
 void Chunk::rebuild()

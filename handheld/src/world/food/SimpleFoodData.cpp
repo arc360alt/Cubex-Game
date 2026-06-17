@@ -43,16 +43,23 @@ void SimpleFoodData::tick(Player* player) {
         }
     }
 
-    // Use actual horizontal displacement so dedicated/multiplayer players drain food too.
-    const float dx = player->x - player->xo;
-    const float dz = player->z - player->zo;
-    const float horizontalDistance = Mth::sqrt(dx * dx + dz * dz);
+    // Track position ourselves so this works on both server (where xo==x due to lerpTo)
+    // and client. lastTickPosValid gates the first tick so we don't get a huge jump.
+    float horizontalDistance = 0.0f;
+    if (lastTickPosValid) {
+        const float dx = player->x - lastTickX;
+        const float dz = player->z - lastTickZ;
+        horizontalDistance = Mth::sqrt(dx * dx + dz * dz);
+    }
+    lastTickX = player->x;
+    lastTickZ = player->z;
+    lastTickPosValid = true;
 
     // Time-based hunger rates (independent of server tick speed):
-    // - walking: 1 hunger bar (2 points) per 60s => 1 point per 30s
-    // - sprinting: 1 hunger bar (2 points) per 25s => 1 point per 12.5s
-    static const float WALK_SECONDS_PER_POINT = 30.0f;
-    static const float SPRINT_SECONDS_PER_POINT = 12.5f;
+    // - walking: 1 hunger point per 90s (~1.5 min)
+    // - sprinting: 1 hunger point per 45s
+    static const float WALK_SECONDS_PER_POINT = 90.0f;
+    static const float SPRINT_SECONDS_PER_POINT = 45.0f;
 
     const float now = getTimeS();
     if (lastFoodTickTime <= 0.0f) {
@@ -67,9 +74,9 @@ void SimpleFoodData::tick(Player* player) {
 
     const bool isMoving = horizontalDistance > 0.001f;
     const float speed = (dt > 0.0f) ? (horizontalDistance / dt) : 0.0f;
-    // 0.16f was far too low and treated regular movement like sprinting.
-    // Use a much higher threshold so only true sprint-speed movement is counted.
-    const bool isSprinting = speed > 2.2f;
+    // Walk speed is ~4.3 blocks/s; sprint speed is ~5.6 blocks/s.
+    // Threshold at 5.0 so normal walking is never misclassified as sprinting.
+    const bool isSprinting = speed > 5.0f;
 
     if (isMoving) {
         if (isSprinting) {
@@ -121,6 +128,7 @@ void SimpleFoodData::addHunger(int amount, float sat) {
     walkHungerSeconds = 0.0f;
     sprintHungerSeconds = 0.0f;
     lastFoodTickTime = 0.0f;
+    lastTickPosValid = false;
 }
 
 void SimpleFoodData::setHunger(int hunger) {
@@ -131,7 +139,8 @@ void SimpleFoodData::setHunger(int hunger) {
         starvationTimer = 0;
         walkHungerSeconds = 0.0f;
         sprintHungerSeconds = 0.0f;
-        lastFoodTickTime = 0.0f;  // reset timing so first post-respawn tick starts fresh
+        lastFoodTickTime = 0.0f;
+        lastTickPosValid = false;
     }
 }
 

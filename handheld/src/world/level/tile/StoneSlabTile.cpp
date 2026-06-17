@@ -126,28 +126,27 @@ static bool isHalfSlab(int tileId) {
 }
 
 bool StoneSlabTile::shouldRenderFace(LevelSource* level, int x, int y, int z, int face) {
-
+	// (x, y, z) is the NEIGHBOR position (pre-computed by TileRenderer).
+	// The base class handles UP/DOWN correctly via yy0/yy1 set by updateShape().
 	if (fullSize) return super::shouldRenderFace(level, x, y, z, face);
 
-	if (face != Facing::UP && face != Facing::DOWN && !super::shouldRenderFace(level, x, y, z, face)) {
-		return false;
+	if (face == Facing::UP || face == Facing::DOWN) {
+		return super::shouldRenderFace(level, x, y, z, face);
 	}
 
-	int ox = x, oy = y, oz = z;
-	ox += Facing::STEP_X[face];
-	oy += Facing::STEP_Y[face];
-	oz += Facing::STEP_Z[face];
+	// Side faces: cull if solid neighbor.
+	if (!super::shouldRenderFace(level, x, y, z, face)) return false;
 
-	bool isUpper = (level->getData(ox, oy, oz) & TOP_SLOT_BIT) != 0;
-	if (isUpper) {
-		if (face == Facing::DOWN) return true;
-		if (face == Facing::UP && super::shouldRenderFace(level, x, y, z, face)) return true;
-		return !(isHalfSlab(level->getTile(x, y, z)) && (level->getData(x, y, z) & TOP_SLOT_BIT) != 0);
-	} else {
-		if (face == Facing::UP) return true;
-		if (face == Facing::DOWN && super::shouldRenderFace(level, x, y, z, face)) return true;
-		return !(isHalfSlab(level->getTile(x, y, z)) && (level->getData(x, y, z) & TOP_SLOT_BIT) == 0);
+	// Also cull when the neighbor is a half-slab at the same vertical slot.
+	if (isHalfSlab(level->getTile(x, y, z))) {
+		const int cx = x - Facing::STEP_X[face];
+		const int cy = y - Facing::STEP_Y[face];
+		const int cz = z - Facing::STEP_Z[face];
+		bool currentIsUpper  = (level->getData(cx, cy, cz) & TOP_SLOT_BIT) != 0;
+		bool neighborIsUpper = (level->getData(x,  y,  z)  & TOP_SLOT_BIT) != 0;
+		if (currentIsUpper == neighborIsUpper) return false;
 	}
+	return true;
 }
 
 int StoneSlabTile::getSpawnResourcesAuxValue(int data) {

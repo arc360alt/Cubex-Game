@@ -359,6 +359,7 @@ tile.glowingobsidian.name=Glowing Obsidian
 tile.netherreactor.name=Nether Reactor Core
 tile.quartzBlock.name=Block of Quartz
 tile.stairsQuartz.name=Quartz Stairs
+tile.hayBale.name=Hay Bale
 tile.stairsSandStone.name=Sand Stone Stairs
 tile.stonecutter.name=Stonecutter
 

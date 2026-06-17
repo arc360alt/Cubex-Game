@@ -34,12 +34,16 @@ private:
 	Touch::TButton* bOldWorld;
 	Touch::TButton* bInfiniteWorld;
 	TextBox* tbWorldName;
+	TextBox* tbSeed;
 
 	bool hasChosen;
 	int step; // 0: name, 1: game mode, 2: world type
 	int chosenGameType; // -1 until chosen
 
 	std::string levelName;
+	std::string seedText;
+
+	void mouseClicked(int x, int y, int button) override;
 };
 
 #endif /*NET_MINECRAFT_CLIENT_GUI_SCREENS__DemoChooseLevelScreen_H__*/

@@ -151,6 +151,7 @@ set(CompileFiles ../../src/main.cpp
 ../../src/world/level/tile/NetherReactorPattern.cpp
 ../../src/world/level/tile/StairTile.cpp
 ../../src/world/level/tile/StemTile.cpp
+../../src/world/level/tile/HayBaleTile.cpp
 ../../src/world/level/tile/StoneSlabTile.cpp
 ../../src/world/level/tile/TallGrass.cpp
 ../../src/world/level/tile/Tile.cpp

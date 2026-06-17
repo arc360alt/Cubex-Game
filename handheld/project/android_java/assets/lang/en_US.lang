@@ -352,6 +352,7 @@ tile.dragonEgg.name=Dragon Egg
 tile.redstoneLight.name=Redstone Lamp
 tile.glowingobsidian.name=Glowing Obsidian
 tile.netherreactor.name=Nether Reactor Core
+tile.hayBale.name=Hay Bale
 
 item.shovelIron.name=Iron Shovel
 item.pickaxeIron.name=Iron Pickaxe

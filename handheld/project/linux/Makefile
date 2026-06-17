@@ -295,6 +295,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/world/level/tile/NetherReactorPattern.cpp \
 	$(SRCDIR)/world/level/tile/StairTile.cpp \
 	$(SRCDIR)/world/level/tile/StemTile.cpp \
+	$(SRCDIR)/world/level/tile/HayBaleTile.cpp \
 	$(SRCDIR)/world/level/tile/StoneSlabTile.cpp \
 	$(SRCDIR)/world/level/tile/TallGrass.cpp \
 	$(SRCDIR)/world/level/tile/Tile.cpp \

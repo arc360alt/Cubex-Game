@@ -15,6 +15,7 @@ public:
     HumanoidMobRenderer(HumanoidModel* humanoidModel, float shadow);
 
 	void renderHand();
+	void syncSkinIs64(bool is64);
 	void render(Entity* mob_, float x, float y, float z, float rot, float a);
 protected:
     void additionalRendering(Mob* mob, float a);

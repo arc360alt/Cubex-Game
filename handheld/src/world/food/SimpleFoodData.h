@@ -32,6 +32,9 @@ private:
     float lastFoodTickTime = 0.0f;
     float walkHungerSeconds = 0.0f;
     float sprintHungerSeconds = 0.0f;
+    float lastTickX = 0.0f;
+    float lastTickZ = 0.0f;
+    bool lastTickPosValid = false;
 };
 
 #endif /*NET_MINECRAFT_WORLD_FOOD__SimpleFoodData_H__*/
