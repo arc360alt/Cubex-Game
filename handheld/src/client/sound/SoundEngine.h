@@ -5,7 +5,7 @@
 
 #if defined(ANDROID) && !defined(PRE_ANDROID23)
 	#include "../../platform/audio/SoundSystemSL.h"
-#elif defined(RPI) || defined(_WIN32)
+#elif defined(RPI) || defined(_WIN32) || defined(STANDALONE_SERVER)
 	#include "../../platform/audio/SoundSystem.h"
 #else
     #include "../../platform/audio/SoundSystemAL.h"

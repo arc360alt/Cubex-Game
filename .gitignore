@@ -41,6 +41,7 @@ handheld/project/android/.gradle/
 handheld/project/android/build/
 handheld/project/android/.cxx/
 handheld/project/android/local.properties
+handheld/project/android/obj/
 handheld/project/android/jni/obj/
 handheld/project/android/libs/
 
