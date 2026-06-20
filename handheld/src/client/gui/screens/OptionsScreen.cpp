@@ -11,6 +11,8 @@
 #include <io.h>
 #define F_OK 0
 #define access _access
+#define popen _popen
+#define pclose _pclose
 #endif
 #include "../../player/LocalPlayer.h"
 #include "../../sound/SoundEngine.h"
