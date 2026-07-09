@@ -1,6 +1,7 @@
 #include "TileRenderer.h"
 #include "../Minecraft.h"
 #include "Tesselator.h"
+#include <mutex>
 
 #include "../../world/level/LevelSource.h"
 #include "../../world/level/tile/Tile.h"
@@ -157,8 +158,23 @@ void TileRenderer::tesselateInWorld( Tile* tile, int x, int y, int z, int fixedT
 	this->fixedTexture = -1;
 }
 
+// Chunk building runs on several worker threads at once, and tiles whose
+// shape depends on this block's own data (stairs, slabs, trapdoors, doors,
+// beds, fences, stems - see Tile::needsRenderLock) all work by mutating
+// their *single, shared* Tile object's xx0..zz1 fields and immediately
+// reading them back to build geometry. Two blocks of the same exact tile
+// (e.g. two stairs_birch instances) built on different threads at once race
+// on those fields, which is what produced stairs/trapdoors that visibly
+// contort or flip state when a neighboring one of the same type changes.
+// This mutex serializes just those tiles' tesselateInWorld() calls -
+// ordinary tiles (dirt, stone, ...) never touch it.
+static std::mutex s_shapeRenderMutex;
+
 bool TileRenderer::tesselateInWorld( Tile* tt, int x, int y, int z )
 {
+	std::unique_lock<std::mutex> shapeLock(s_shapeRenderMutex, std::defer_lock);
+	if (tt->needsRenderLock) shapeLock.lock();
+
 	int shape = tt->getRenderShape();
 	tt->updateShape(level, x, y, z);
 

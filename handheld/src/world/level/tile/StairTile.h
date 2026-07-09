@@ -42,6 +42,7 @@ public:
         setExplodeable(base->explosionResistance / 3);
         setSoundType(*base->soundType);
 		setLightBlock(255);
+		needsRenderLock = true;
     }
 
 	HitResult clip(Level* level, int xt, int yt, int zt, const Vec3& a, const Vec3& b);

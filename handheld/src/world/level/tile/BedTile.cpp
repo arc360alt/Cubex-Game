@@ -14,6 +14,7 @@ const int BedTile::HEAD_DIRECTION_OFFSETS[4][2] = {
 
 BedTile::BedTile( int id ) : super(id, 6 + 8 * 16, Material::cloth) {
 	setShape();
+	needsRenderLock = true;
 }
 
 bool BedTile::use(Level* level, int x, int y, int z, Player* player) {

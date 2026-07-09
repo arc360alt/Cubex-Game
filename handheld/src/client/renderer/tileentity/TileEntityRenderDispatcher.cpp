@@ -7,6 +7,7 @@
 #include "../../../world/level/Level.h"
 #include "../../../world/level/tile/entity/TileEntity.h"
 #include "SignRenderer.h"
+#include "LanternRenderer.h"
 
 /*static*/
 TileEntityRenderDispatcher* TileEntityRenderDispatcher::instance = 0;
@@ -124,6 +125,7 @@ TileEntityRenderDispatcher::TileEntityRenderDispatcher()
 {
 	_renderers.insert(std::make_pair(TR_CHEST_RENDERER, new ChestRenderer()));
     _renderers.insert(std::make_pair(TR_SIGN_RENDERER, new SignRenderer()));
+    _renderers.insert(std::make_pair(TR_LANTERN_RENDERER, new LanternRenderer()));
 
 	for (RendererCIterator cit = _renderers.begin(); cit != _renderers.end(); ++cit)
 		cit->second->init(this);

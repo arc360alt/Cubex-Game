@@ -120,23 +120,38 @@ void ItemInHandRenderer::renderItem(Mob* mob,  ItemInstance* item )
 			renderObject.itemId = itemId;
 			renderObject.isFlat = true;
 
-			if (item->id < 256) {
-				renderObject.texture = "terrain.png";
-				//mc->textures->loadAndBindTexture("terrain.png");
-			} else {
-				renderObject.texture = "gui/items.png";
-				//mc->textures->loadAndBindTexture("gui/items.png");
-			}
+			TileCustomIcon* customIcon = (item->id < 256) ? Tile::tiles[item->id]->customIcon : NULL;
+
 			// glDisable2(GL_LIGHTING);
 			Tesselator& t = Tesselator::instance;
 			t.beginOverride();
 			t.color(0xff, 0xff, 0xff);
-			const int up = itemIcon & 15;
-			const int vp = itemIcon >> 4;
-			float u1 = (up * 16 + 0.00f) / 256.0f;
-			float u0 = (up * 16 + 15.99f) / 256.0f;
-			float v0 = (vp * 16 + 0.00f) / 256.0f;
-			float v1 = (vp * 16 + 15.99f) / 256.0f;
+			float u0, u1, v0, v1;
+			if (customIcon) {
+				// Already-normalized (0..1) coords into customIcon->file - see
+				// LanternTile/Tile::setCustomIcon. u1/u0 (left/right) are
+				// swapped on purpose to match the roles those names have in
+				// the rest of this function (u1 = start edge, u0 = end edge).
+				renderObject.texture = customIcon->file;
+				u1 = customIcon->u0;
+				u0 = customIcon->u1;
+				v0 = customIcon->v0;
+				v1 = customIcon->v1;
+			} else {
+				if (item->id < 256) {
+					renderObject.texture = "terrain.png";
+					//mc->textures->loadAndBindTexture("terrain.png");
+				} else {
+					renderObject.texture = "gui/items.png";
+					//mc->textures->loadAndBindTexture("gui/items.png");
+				}
+				const int up = itemIcon & 15;
+				const int vp = itemIcon >> 4;
+				u1 = (up * 16 + 0.00f) / 256.0f;
+				u0 = (up * 16 + 15.99f) / 256.0f;
+				v0 = (vp * 16 + 0.00f) / 256.0f;
+				v1 = (vp * 16 + 15.99f) / 256.0f;
+			}
 
 			float r = 1.0f;
 //			float xo = 0.0f;

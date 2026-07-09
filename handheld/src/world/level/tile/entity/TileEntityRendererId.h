@@ -4,7 +4,8 @@
 enum TileEntityRendererId {
 	TR_DEFAULT_RENDERER,
 	TR_CHEST_RENDERER,
-    TR_SIGN_RENDERER
+    TR_SIGN_RENDERER,
+    TR_LANTERN_RENDERER
 };
 
 #endif /*NET_MINECRAFT_WORLD_ENTITY__TileEntityRendererId_H__*/

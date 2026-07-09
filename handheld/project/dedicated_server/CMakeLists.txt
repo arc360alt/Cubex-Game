@@ -144,6 +144,7 @@ set(CompileFiles ../../src/main.cpp
 ../../src/world/level/tile/FurnaceTile.cpp
 ../../src/world/level/tile/GrassTile.cpp
 ../../src/world/level/tile/HeavyTile.cpp
+../../src/world/level/tile/LanternTile.cpp
 ../../src/world/level/tile/LightGemTile.cpp
 ../../src/world/level/tile/MelonTile.cpp
 ../../src/world/level/tile/Mushroom.cpp
@@ -159,6 +160,7 @@ set(CompileFiles ../../src/main.cpp
 ../../src/world/level/tile/entity/ChestTileEntity.cpp
 ../../src/world/level/tile/entity/NetherReactorTileEntity.cpp
 ../../src/world/level/tile/entity/SignTileEntity.cpp
+../../src/world/level/tile/entity/LanternTileEntity.cpp
 ../../src/world/level/tile/entity/TileEntity.cpp
 ../../src/world/level/tile/entity/FurnaceTileEntity.cpp
 ../../src/world/phys/HitResult.cpp)

@@ -9,6 +9,7 @@ TileEntity::MapTypeId TileEntity::classIdMap;
 #include "../../Level.h"
 #include "../../../../nbt/CompoundTag.h"
 #include "SignTileEntity.h"
+#include "LanternTileEntity.h"
 
 int TileEntity::_runningId = 0;
 
@@ -22,6 +23,7 @@ TileEntity* TileEntityFactory::createTileEntity( int type )
 	case TileEntityType::Chest:	    return new ChestTileEntity();
     case TileEntityType::Sign:		return new SignTileEntity();
     case TileEntityType::NetherReactor:	return new NetherReactorTileEntity();
+    case TileEntityType::Lantern:	return new LanternTileEntity();
 	default:
 		LOGE("Can't find TileEntity of type: %d\n", type);
 		return NULL;
@@ -41,6 +43,7 @@ void TileEntity::initTileEntities()
 	//         setId(RecordPlayerTile.Entity.class, "RecordPlayer");
 	//         setId(DispenserTileEntity.class, "Trap");
 	setId(TileEntityType::Sign, "Sign");
+	setId(TileEntityType::Lantern, "Lantern");
 	//         setId(MobSpawnerTileEntity.class, "MobSpawner");
 	//         setId(MusicTileEntity.class, "Music");
 	//         setId(PistonPieceEntity.class, "Piston");

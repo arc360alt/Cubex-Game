@@ -109,6 +109,7 @@ Item* Item::door_wood = NULL;
 //Item* Item::saddle = NULL;
 Item* Item::door_iron = NULL;
 Item* Item::door_spruce = NULL;
+Item* Item::door_birch = NULL;
 //Item* Item::redStone = NULL;
 Item* Item::snowBall = NULL;
 
@@ -255,6 +256,8 @@ void Item::initItems() {
 	// icons at (11,2)/(12,2) are genuine items.png door sprites; (6,6) is a
 	// matching spruce-tinted sprite added there for this door.
 	Item::door_spruce = (new DoorItem(111, Tile::door_spruce))->setIcon(6, 6)->setCategory(ItemCategory::Structures)->setDescriptionId("doorSpruce");
+	// (7,7) is a matching birch-toned sprite added there for this door.
+	Item::door_birch = (new DoorItem(112, Tile::door_birch))->setIcon(7, 7)->setCategory(ItemCategory::Structures)->setDescriptionId("doorBirch");
 	//Item::redStone = (new RedStoneItem(75))->setIcon(8, 3)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("redstone");
 	Item::snowBall = (new SnowballItem(76))->setIcon(14, 0)->setCategory(ItemCategory::Decorations)->setDescriptionId("snowball");
 	//Item::boat = (new BoatItem(77))->setIcon(8, 8)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("boat");

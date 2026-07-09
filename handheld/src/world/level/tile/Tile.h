@@ -20,6 +20,21 @@ class GrassTile;
 class LeafTile;
 class FireTile;
 
+// A tile's texture normally has to live in terrain.png (world rendering
+// batches a whole chunk into one VBO bound to that one texture, so nothing
+// else can be mixed in - see TileRenderer::tesselateInWorld/Chunk.cpp). This
+// is the escape hatch: a Tile with a non-NULL customIcon points its GUI/hand
+// icon at an arbitrary standalone PNG (e.g. "lantern.png") instead of an
+// atlas cell, avoiding the need to keep growing terrain.png for tiles that
+// render entirely through their own TileEntityRenderer (see EntityTile).
+// u0/v0/u1/v1 are normalized (0..1) source coordinates within that file.
+struct TileCustomIcon {
+	TileCustomIcon(const std::string& file, float u0, float v0, float u1, float v1)
+	:	file(file), u0(u0), v0(v0), u1(u1), v1(v1) {}
+	std::string file;
+	float u0, v0, u1, v1;
+};
+
 // @Note: Got a memory leak in initTiles? You probably didn't call
 //        Tile::init after constructing the tile!
 class Tile
@@ -235,6 +250,13 @@ public:
 	static Tile* door_spruce;
 	static Tile* trapdoor_spruce;
 
+	static Tile* planksBirch;
+	static Tile* stairs_birch;
+	static Tile* door_birch;
+	static Tile* trapdoor_birch;
+
+	static Tile* lantern;
+
 	// invisible bedrock is used to block off empty chunks (i.e. prevent player movement)
 	static Tile* invisible_bedrock;
 	static Tile* info_updateGame1;
@@ -382,6 +404,31 @@ public:
 	float explosionResistance;
 
 	int category;
+
+	// See TileCustomIcon above. NULL (default) means "use terrain.png/
+	// items.png the normal way" - unrelated to this field entirely.
+	TileCustomIcon* customIcon;
+	Tile* setCustomIcon(const std::string& file, float u0, float v0, float u1, float v1);
+
+	// Tiles whose render shape depends on this block's specific position/data
+	// (StairTile, StoneSlabTile, TrapDoorTile, DoorTile, BedTile, FenceTile,
+	// ThinFenceTile, StemTile, ...) work by mutating this *shared, single*
+	// Tile object's xx0..zz1 fields (via updateShape()/setBaseShape() etc.)
+	// and immediately reading them back during the same tesselate call - see
+	// TileRenderer::tesselateBlockInWorld reading tt->xx0/xx1/yy1/zz0/zz1,
+	// and StairTile's setBaseShape->tesselateBlockInWorld->setStepShape->
+	// tesselateBlockInWorld sequence. Chunk building runs on multiple worker
+	// threads, and since every stairs_X (or trapdoor_X, etc.) block in the
+	// world shares that *one* Tile instance, two such blocks built on
+	// different threads at the same moment race on those fields - one
+	// thread's shape can get overwritten mid-sequence by another's, which is
+	// what produces contorted/broken-looking stairs and trapdoors that
+	// change state when a neighboring one changes. Subclasses with this
+	// problem set this true in their constructor; TileRenderer serializes
+	// just their tesselateInWorld() calls on a global mutex - default false
+	// costs nothing for the vast majority of tiles (dirt/stone/etc.) whose
+	// shape never actually changes per-position.
+	bool needsRenderLock;
 protected:
 	AABB tmpBB;
 

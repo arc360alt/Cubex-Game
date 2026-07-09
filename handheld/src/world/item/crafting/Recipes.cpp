@@ -64,6 +64,11 @@ Recipes::Recipes()
 		"#W#", //
 
 		definition('#', Item::stick, 'W', Tile::planksSpruce));
+	addShapedRecipe(ItemInstance(Tile::fenceGate, 1), //
+		"#W#", //
+		"#W#", //
+
+		definition('#', Item::stick, 'W', Tile::planksBirch));
 
 	//addShapedRecipe(ItemInstance(Tile::recordPlayer, 1), //
 	//	"###", //
@@ -91,6 +96,12 @@ Recipes::Recipes()
 		"###", //
 
 		definition('#', Tile::planksSpruce, 'X', Item::book));
+	addShapedRecipe(ItemInstance(Tile::bookshelf, 1), //
+		"###", //
+		"XXX", //
+		"###", //
+
+		definition('#', Tile::planksBirch, 'X', Item::book));
 
 	addShapedRecipe(ItemInstance(Tile::snow, 1), //
 		"##", //
@@ -197,6 +208,12 @@ Recipes::Recipes()
 		" X ", //
 
 		definition('#', Tile::planksSpruce, 'X', Item::stick));
+	addShapedRecipe(ItemInstance(Item::sign, 1), //
+		"###", //
+		"###", //
+		" X ", //
+
+		definition('#', Tile::planksBirch, 'X', Item::stick));
 
 	//addShapedRecipe(ItemInstance(Item::cake, 1), //
 	//	"AAA", //
@@ -225,6 +242,11 @@ Recipes::Recipes()
 
 		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::DARK_TRUNK)));
 
+	addShapedRecipe(ItemInstance(Tile::planksBirch, 4), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::BIRCH_TRUNK)));
+
 	addShapedRecipe(ItemInstance(Tile::wood, 4), //
 		"#", //
 
@@ -240,6 +262,11 @@ Recipes::Recipes()
 		"#", //
 
 		definition('#', Tile::planksSpruce));
+	addShapedRecipe(ItemInstance(Item::stick, 4), //
+		"#", //
+		"#", //
+
+		definition('#', Tile::planksBirch));
 
 	addShapedRecipe(ItemInstance(Tile::torch, 4), //
 		"X", //
@@ -255,6 +282,12 @@ Recipes::Recipes()
 		definition( 'X', ItemInstance(Item::coal, 1, CoalItem::CHAR_COAL),//
 					'#', Item::stick));
 
+	addShapedRecipe(ItemInstance(Tile::lantern, 1), //
+		"I", //
+		"T", //
+
+		definition('I', Item::ironIngot, 'T', Tile::torch));
+
 	addShapedRecipe(ItemInstance(Item::bowl, 4), //
 		"# #", //
 		" # ", //
@@ -265,14 +298,24 @@ Recipes::Recipes()
 		" # ", //
 
 		definition('#', Tile::planksSpruce));
+	addShapedRecipe(ItemInstance(Item::bowl, 4), //
+		"# #", //
+		" # ", //
+
+		definition('#', Tile::planksBirch));
 
 	// Crafting table: the oak recipe already exists in StructureRecipes.h -
-	// this just adds the spruce-plank alternative next to it.
+	// this just adds the spruce/birch-plank alternatives next to it.
 	addShapedRecipe(ItemInstance(Tile::workBench, 1), //
 		"##", //
 		"##", //
 
 		definition('#', Tile::planksSpruce));
+	addShapedRecipe(ItemInstance(Tile::workBench, 1), //
+		"##", //
+		"##", //
+
+		definition('#', Tile::planksBirch));
 
 	//addShapedRecipe(ItemInstance(Item::glassBottle, 3), //
 	//	"# #", //
@@ -398,6 +441,32 @@ Recipes::Recipes()
 		"###", //
 
 		definition('#', Tile::planksSpruce));
+
+	// Birch set (log -> planks recipe is above, near the oak/spruce ones).
+	addShapedRecipe(ItemInstance(Tile::stairs_birch, 4), //
+		"#  ", //
+		"## ", //
+		"###", //
+
+		definition('#', Tile::planksBirch));
+
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::BIRCH_SLAB), //
+		"###", //
+
+		definition('#', Tile::planksBirch));
+
+	addShapedRecipe(ItemInstance(Item::door_birch, 1), //
+		"##", //
+		"##", //
+		"##", //
+
+		definition('#', Tile::planksBirch));
+
+	addShapedRecipe(ItemInstance(Tile::trapdoor_birch, 2), //
+		"###", //
+		"###", //
+
+		definition('#', Tile::planksBirch));
 
 	//addShapedRecipe(ItemInstance(Item::fishingRod, 1), //
 	//	"  #", //
@@ -532,6 +601,10 @@ Recipes::Recipes()
 		"###", //
 		"XXX", //
 		definition('#', Tile::cloth, 'X', Tile::planksSpruce));
+	addShapedRecipe(ItemInstance(Item::bed, 1), //
+		"###", //
+		"XXX", //
+		definition('#', Tile::cloth, 'X', Tile::planksBirch));
 
 	//addShapedRecipe(ItemInstance(Tile::enchantTable, 1), //
 	//	" B ", //

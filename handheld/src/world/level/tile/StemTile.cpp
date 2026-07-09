@@ -5,6 +5,7 @@ StemTile::StemTile( int id, Tile* fruit )
 	setTicking(true);
 	float ss = 0.125f;
 	this->setShape(0.5f - ss, 0, 0.5f - ss, 0.5f + ss, 0.25f, 0.5f + ss);
+	needsRenderLock = true;
 }
 
 bool StemTile::mayPlaceOn( int tile ) {

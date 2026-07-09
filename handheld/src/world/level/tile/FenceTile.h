@@ -15,11 +15,13 @@ public:
     FenceTile(int id, int tex)
     :   super(id, tex, Material::wood)
     {
+        needsRenderLock = true;
     }
 
     FenceTile(int id, int tex, const Material* material)
     :   super(id, tex, material)
     {
+        needsRenderLock = true;
     }
 
     bool mayPlace(Level* level, int x, int y, int z) {

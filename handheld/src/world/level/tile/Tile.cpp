@@ -161,6 +161,11 @@ Tile* Tile::planksSpruce  = NULL;
 Tile* Tile::stairs_spruce = NULL;
 Tile* Tile::door_spruce   = NULL;
 Tile* Tile::trapdoor_spruce = NULL;
+Tile* Tile::planksBirch = NULL;
+Tile* Tile::stairs_birch = NULL;
+Tile* Tile::door_birch = NULL;
+Tile* Tile::trapdoor_birch = NULL;
+Tile* Tile::lantern = NULL;
 
 /*static*/
 void Tile::initTiles() {
@@ -275,9 +280,28 @@ void Tile::initTiles() {
 	planksSpruce  = (new Tile(158, 14 + 1*16, Material::wood))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("planksSpruce");
 	stairs_spruce = (new StairTile(159, planksSpruce))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsSpruce");
 	door_spruce   = (new DoorTile(160, Material::wood, 7 + 14*16))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setDescriptionId("doorSpruce");
-	// Reuses planksSpruce's texture directly (same convention as the spruce
-	// slab/stairs) rather than a new terrain.png cell.
-	trapdoor_spruce = (new TrapDoorTile(161, Material::wood, planksSpruce->tex))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorSpruce");
+	// terrain.png slot: column 8, row 13 (index 216) - right next to the
+	// spruce door's top half (7, 13).
+	trapdoor_spruce = (new TrapDoorTile(161, Material::wood, 8 + 13*16))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorSpruce");
+
+	// terrain.png slots the user painted in: plank (11,10)=171, trapdoor
+	// (12,10)=172, door top (10,11)=186, door bottom (10,12)=202.
+	planksBirch  = (new Tile(163, 11 + 10*16, Material::wood))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("planksBirch");
+	stairs_birch = (new StairTile(164, planksBirch))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsBirch");
+	// No setCategory() here on purpose - see door_wood/door_iron/door_spruce
+	// above for why (avoids the tile-fallback duplicate/broken-icon bug).
+	// DoorTile derives the upper half's texture as (tex - 16), so this must
+	// be the BOTTOM half's cell (10,12)=202 - the top half (10,11)=186 is
+	// exactly 202-16, confirming the two cells the user painted line up.
+	door_birch   = (new DoorTile(165, Material::wood, 10 + 12*16))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setDescriptionId("doorBirch");
+	trapdoor_birch = (new TrapDoorTile(166, Material::wood, 12 + 10*16))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorBirch");
+
+	// Renders entirely through LanternRenderer (see EntityTile/getRenderShape
+	// SHAPE_INVISIBLE in LanternTile) using its own lantern.png rather than
+	// terrain.png - setCustomIcon points the GUI/hand icon at the same file
+	// (cropped to just the icon art, see LanternTile.cpp for the pixel math).
+	lantern = (new LanternTile(162))->init()->setDestroyTime(0.5f)->setLightEmission(15 / 16.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Decorations)->setDescriptionId("lantern")
+		->setCustomIcon("lantern.png", 0.0f, 0.0f, 6.0f / 16.0f, 15.0f / 48.0f);
 
 	//
 	// Special tiles for Pocket Edition is placed at high IDs
@@ -348,6 +372,8 @@ Tile::Tile(int id, const Material* material)
 	material(material),
 	tex(1),
 	category(-1),
+	customIcon(NULL),
+	needsRenderLock(false),
 	gravity(1.0f),
 	friction(0.6f),
 	soundType(&Tile::SOUND_NORMAL),
@@ -365,6 +391,8 @@ Tile::Tile( int id, int tex, const Material* material )
 	tex(tex),
 	material(material),
 	category(-1),
+	customIcon(NULL),
+	needsRenderLock(false),
 	gravity(1.0f),
 	friction(0.6f),
 	soundType(&Tile::SOUND_NORMAL),
@@ -766,5 +794,11 @@ bool Tile::mayPlace( Level* level, int x, int y, int z ) {
 
 Tile* Tile::setCategory(int category) {
 	this->category = category;
+	return this;
+}
+
+Tile* Tile::setCustomIcon(const std::string& file, float u0, float v0, float u1, float v1) {
+	delete customIcon;
+	customIcon = new TileCustomIcon(file, u0, v0, u1, v1);
 	return this;
 }

@@ -32,13 +32,18 @@ void WeaponRecipes::addRecipes( Recipes* r )
 		}
 	}
 
-	// sword_wood isn't per-species, so spruce planks should work too - see
-	// the matching comment in ToolRecipes.cpp for why this is registered
+	// sword_wood isn't per-species, so spruce/birch planks should work too -
+	// see the matching comment in ToolRecipes.cpp for why this is registered
 	// separately rather than added to materialIds.
 	for (int t = 0; t < NumRecipes; t++) {
 		Item* target = (Item*) map[t][0];
 		r->addShapedRecipe( ItemInstance(target), shapes[t],
 			definition('#', Item::stick, 'X', Tile::planksSpruce) );
+	}
+	for (int t = 0; t < NumRecipes; t++) {
+		Item* target = (Item*) map[t][0];
+		r->addShapedRecipe( ItemInstance(target), shapes[t],
+			definition('#', Item::stick, 'X', Tile::planksBirch) );
 	}
 
 	r->addShapedRecipe(ItemInstance(Item::bow, 1), //

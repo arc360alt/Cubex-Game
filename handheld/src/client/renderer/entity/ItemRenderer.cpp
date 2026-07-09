@@ -79,18 +79,26 @@ void ItemRenderer::render(Entity* itemEntity_, float x, float y, float z, float 
 		}
 	} else {
 		glScalef2(1 / 2.0f, 1 / 2.0f, 1 / 2.0f);
-		int icon = item->getIcon();
-		if (item->id < 256) {
-			bindTexture("terrain.png");
-		} else {
-			bindTexture("gui/items.png");
-		}
 		Tesselator& t = Tesselator::instance;
 
-		float u0 = ((icon % 16) * 16 + 0) / 256.0f;
-		float u1 = ((icon % 16) * 16 + 16) / 256.0f;
-		float v0 = ((icon / 16) * 16 + 0) / 256.0f;
-		float v1 = ((icon / 16) * 16 + 16) / 256.0f;
+		float u0, u1, v0, v1;
+		TileCustomIcon* customIcon = (item->id < 256) ? Tile::tiles[item->id]->customIcon : NULL;
+		if (customIcon) {
+			bindTexture(customIcon->file);
+			u0 = customIcon->u0; u1 = customIcon->u1;
+			v0 = customIcon->v0; v1 = customIcon->v1;
+		} else {
+			int icon = item->getIcon();
+			if (item->id < 256) {
+				bindTexture("terrain.png");
+			} else {
+				bindTexture("gui/items.png");
+			}
+			u0 = ((icon % 16) * 16 + 0) / 256.0f;
+			u1 = ((icon % 16) * 16 + 16) / 256.0f;
+			v0 = ((icon / 16) * 16 + 0) / 256.0f;
+			v1 = ((icon / 16) * 16 + 16) / 256.0f;
+		}
 
 		float r = 1.0f;
 		float xo = 0.5f;
@@ -272,7 +280,22 @@ void ItemRenderer::renderGuiItemCorrect(Font* font, Textures* textures, const It
 		return;
 
 	//glDisable(GL_CULL_FACE);
-	if (item->id < 256 && TileRenderer::canRender(Tile::tiles[item->id]->getRenderShape()))
+	TileCustomIcon* customIcon = (item->id < 256) ? Tile::tiles[item->id]->customIcon : NULL;
+	if (customIcon)
+	{
+		// blit() assumes a 256x256 source texture (fixed /256 UV divisor) -
+		// wrong for a small standalone file like lantern.png, so this uses
+		// its own already-normalized UVs instead of going through blit().
+		textures->loadAndBindTexture(customIcon->file);
+		Tesselator& t = Tesselator::instance;
+		t.begin();
+		t.vertexUV((float)x,      (float)(y + 16), 0, customIcon->u0, customIcon->v1);
+		t.vertexUV((float)(x+16), (float)(y + 16), 0, customIcon->u1, customIcon->v1);
+		t.vertexUV((float)(x+16), (float)y,         0, customIcon->u1, customIcon->v0);
+		t.vertexUV((float)x,      (float)y,         0, customIcon->u0, customIcon->v0);
+		t.draw();
+	}
+	else if (item->id < 256 && TileRenderer::canRender(Tile::tiles[item->id]->getRenderShape()))
 	{
 		int paint = item->id;
 		textures->loadAndBindTexture("terrain.png");

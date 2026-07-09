@@ -301,6 +301,7 @@ void Inventory::setupDefault() {
 
 		addItem(new ItemInstance(Item::door_wood));
 		addItem(new ItemInstance(Item::door_spruce));
+		addItem(new ItemInstance(Item::door_birch));
 		addItem(new ItemInstance(Tile::trapdoor));
 		addItem(new ItemInstance(Tile::fence));
 		addItem(new ItemInstance(Tile::fenceGate));
@@ -401,12 +402,12 @@ void Inventory::setupDefault() {
 			addTileVariantIfMissing(Tile::quartzBlock, d);
 		}
 
-		// NOTE: bumped to SPRUCE_SLAB (the highest slab aux value currently
-		// defined) rather than SMOOTHBRICK_SLAB — this bound needs to track
-		// StoneSlabTile's highest TYPE_MASK value by hand any time a new slab
-		// variant is added, since it's just a plain data-value loop with no
-		// way to introspect "how many slab types exist".
-		for (int d = 0; d <= StoneSlabTile::SPRUCE_SLAB; ++d)
+		// NOTE: bumped to BIRCH_SLAB (the highest slab aux value currently
+		// defined) — this bound needs to track StoneSlabTile's highest
+		// TYPE_MASK value by hand any time a new slab variant is added,
+		// since it's just a plain data-value loop with no way to
+		// introspect "how many slab types exist".
+		for (int d = 0; d <= StoneSlabTile::BIRCH_SLAB; ++d)
 			addTileVariantIfMissing(Tile::stoneSlabHalf, d);
 
 		for (int d = 0; d < 16; ++d)

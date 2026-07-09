@@ -175,6 +175,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/renderer/ptexture/DynamicTexture.cpp \
 	$(SRCDIR)/client/renderer/tileentity/ChestRenderer.cpp \
 	$(SRCDIR)/client/renderer/tileentity/SignRenderer.cpp \
+	$(SRCDIR)/client/renderer/tileentity/LanternRenderer.cpp \
 	$(SRCDIR)/client/renderer/tileentity/TileEntityRenderDispatcher.cpp \
 	$(SRCDIR)/client/renderer/tileentity/TileEntityRenderer.cpp \
 	$(SRCDIR)/client/sound/Sound.cpp \
@@ -289,6 +290,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/world/level/tile/FurnaceTile.cpp \
 	$(SRCDIR)/world/level/tile/GrassTile.cpp \
 	$(SRCDIR)/world/level/tile/HeavyTile.cpp \
+	$(SRCDIR)/world/level/tile/LanternTile.cpp \
 	$(SRCDIR)/world/level/tile/LightGemTile.cpp \
 	$(SRCDIR)/world/level/tile/MelonTile.cpp \
 	$(SRCDIR)/world/level/tile/Mushroom.cpp \
@@ -304,6 +306,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/world/level/tile/entity/ChestTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/NetherReactorTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/SignTileEntity.cpp \
+	$(SRCDIR)/world/level/tile/entity/LanternTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/TileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/FurnaceTileEntity.cpp \
 	$(SRCDIR)/world/phys/HitResult.cpp

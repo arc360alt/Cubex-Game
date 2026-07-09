@@ -173,7 +173,7 @@ void CreativeInventoryScreen::buildCatalog() {
 		_catalog.push_back(new ItemInstance(Tile::stoneBrickSmooth, 1, d));
 		_catalog.push_back(new ItemInstance(Tile::quartzBlock, 1, d));
 	}
-	for (int d = 0; d <= StoneSlabTile::SPRUCE_SLAB; ++d)
+	for (int d = 0; d <= StoneSlabTile::BIRCH_SLAB; ++d)
 		_catalog.push_back(new ItemInstance(Tile::stoneSlabHalf, 1, d));
 
 	for (int id = 256; id < Item::MAX_ITEMS; ++id) {

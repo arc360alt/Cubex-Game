@@ -157,6 +157,7 @@ public:
     static Item* saddle;
     static Item* door_iron;
     static Item* door_spruce;
+    static Item* door_birch;
     static Item* redStone;
     static Item* snowBall;
 

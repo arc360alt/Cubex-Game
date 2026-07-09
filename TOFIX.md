@@ -5,4 +5,3 @@
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
 - Upgrade the lighting and visuals to make the game look better
-- Update the spruce textures to use the offical ones

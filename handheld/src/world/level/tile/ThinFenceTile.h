@@ -16,6 +16,7 @@ public:
         edgeTexture(edgeTex),
         dropsResources(dropsResources)
     {
+        needsRenderLock = true;
     }
 
     /*@Override*/

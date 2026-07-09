@@ -27,6 +27,7 @@
 #include "IceTile.h"
 #include "InvisibleTile.h"
 #include "LadderTile.h"
+#include "LanternTile.h"
 #include "LeafTile.h"
 #include "LightGemTile.h"
 #include "LiquidTileDynamic.h"
