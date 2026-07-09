@@ -185,13 +185,19 @@ void ItemRenderer::renderGuiItem(Font* font, Textures* textures, const ItemInsta
 		if (!t.isOverridden())
 			renderGuiItemCorrect(font, textures, item, int(x), int(y));
 		else {
-			// @huge @attn @todo @fix:	This is just guess-works..
-			//							it we're batching for saving the
-			//							buffer, this will fail miserably
+			// Most items (every block, plus anything not in _mapper) hit this
+			// path. We have to break out of the pending override batch to draw
+			// them immediately, since they don't go through the batched
+			// gui_blocks.png quad below. This used to also paint a solid red
+			// fillRect() here first "in case renderGuiItemCorrect draws
+			// nothing" - but it ran unconditionally, before the real icon, so
+			// any icon that doesn't fully cover its 16x16 cell (every tool,
+			// weapon, food, dye, door, sapling, etc. - i.e. most non-block
+			// items) showed red bleeding through its transparent padding.
+			// That's what the "red boxes" in the hotbar/inventory/armor
+			// screens were - not a missing-icon indicator, just always-on
+			// debug fill nobody removed.
 			t.endOverrideAndDraw();
-			glDisable2(GL_TEXTURE_2D);
-			fillRect(t, x, y, w, h, 0xff0000);
-			glEnable2(GL_TEXTURE_2D);
 			renderGuiItemCorrect(font, textures, item, int(x), int(y));
 			t.beginOverride();
 		}

@@ -4,4 +4,4 @@
 - **Make the game work with Windows and other operating systems.**
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
-- Add cape support (make it so you can upload your own cape images like how you can upload skins)
+- Upgrade the lighting and visuals to make the game look better

@@ -6,7 +6,12 @@ class TrapDoorTile : public Tile {
 	typedef Tile super;
 
 public:
-	TrapDoorTile(int id, const Material* material);
+	// data bit: closed trapdoor sits flush against the top of its own block
+	// space instead of the bottom (mirrors StoneSlabTile::TOP_SLOT_BIT) -
+	// set when placed by clicking the upper half of a side face.
+	static const int TOP_HALF = 8;
+
+	TrapDoorTile(int id, const Material* material, int texOverride = -1);
 	bool blocksLight();
 	bool isSolidRender();
 	bool isCubeShaped();

@@ -157,6 +157,11 @@ Tile* Tile::quartzBlock   = NULL;
 Tile* Tile::stairs_quartz   = NULL;
 Tile* Tile::hayBale       = NULL;
 
+Tile* Tile::planksSpruce  = NULL;
+Tile* Tile::stairs_spruce = NULL;
+Tile* Tile::door_spruce   = NULL;
+Tile* Tile::trapdoor_spruce = NULL;
+
 /*static*/
 void Tile::initTiles() {
 	rock        = (new StoneTile(1, 1))->init()->setDestroyTime(1.5f)->setExplodeable(10)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("stone");
@@ -213,13 +218,19 @@ void Tile::initTiles() {
 	furnace		= (new FurnaceTile(61, false))->init()->setDestroyTime(3.5f)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Structures)->setDescriptionId("furnace");//.sendTileData();
 	furnace_lit = (new FurnaceTile(62, true))->init()->setDestroyTime(3.5f)->setSoundType(SOUND_STONE)->setLightEmission(14 / 16.0f)->setCategory(ItemCategory::Structures)->setDescriptionId("furnace");//.sendTileData();
     sign        = (new SignTile(63, TileEntityType::Sign, true))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Decorations)->setDescriptionId("sign");//->sendTileData();
-	door_wood   = (new DoorTile(64, Material::wood))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("doorWood");
+	// @note: no setCategory() here on purpose - doors are collected/placed as
+	// Item::door_* (their proper inventory form), not as a raw placed-tile
+	// ItemInstance. Tile::category >= 0 makes Inventory::setupDefault()'s
+	// generic tile-fallback loop add a second, broken entry for this tile
+	// (whose GUI icon only shows the bottom half of the door), duplicating
+	// the correct entry already added via the Item::door_* fallback/explicit add.
+	door_wood   = (new DoorTile(64, Material::wood))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setDescriptionId("doorWood");
 	ladder      = (new LadderTile(65, 3 + 5 * 16))->init()->setDestroyTime(0.4f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("ladder");
 
 	stairs_stone= (new StairTile(67, stoneBrick))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsStone");
     wallSign    = (new SignTile(68, TileEntityType::Sign, false))->init()->setDestroyTime(1.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Decorations)->setDescriptionId("sign");//->sendTileData();
 
-	door_iron   = (new DoorTile(71, Material::metal))->init()->setDestroyTime(5.0f)->setSoundType(SOUND_METAL)->setCategory(ItemCategory::Structures)->setDescriptionId("doorIron");
+	door_iron   = (new DoorTile(71, Material::metal))->init()->setDestroyTime(5.0f)->setSoundType(SOUND_METAL)->setDescriptionId("doorIron");
 
 	redStoneOre = (new RedStoneOreTile(73, 16 * 3 + 3, false))->init()->setDestroyTime(3.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("oreRedstone");
 	redStoneOre_lit = (new RedStoneOreTile(74, 16 * 3 + 3, true))->init()->setDestroyTime(3.0f)->setLightEmission(10 / 16.0f)->setExplodeable(5)->setSoundType(SOUND_STONE)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("oreRedstone");
@@ -257,6 +268,16 @@ void Tile::initTiles() {
 	stairs_quartz = (new StairTile(156, Tile::quartzBlock))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsQuartz");//->sendTileData();
 	// terrain.png column 4, row 12 (index 196) = top/bottom; column 5, row 12 (index 197) = side
 	hayBale       = (new HayBaleTile(157, 4 + 12*16, 5 + 12*16))->init()->setSoundType(SOUND_GRASS)->setDestroyTime(0.5f)->setCategory(ItemCategory::Structures)->setDescriptionId("hayBale");
+
+	// Spruce wood set. Textures live in previously-unused (purple-marked)
+	// terrain.png slots: plank at column 14 row 1 (index 30); door at column 7,
+	// rows 13 (top half) and 14 (bottom half, index 231 = DoorTile's `tex`).
+	planksSpruce  = (new Tile(158, 14 + 1*16, Material::wood))->init()->setDestroyTime(2.0f)->setExplodeable(5)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("planksSpruce");
+	stairs_spruce = (new StairTile(159, planksSpruce))->init()->setCategory(ItemCategory::Structures)->setDescriptionId("stairsSpruce");
+	door_spruce   = (new DoorTile(160, Material::wood, 7 + 14*16))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setDescriptionId("doorSpruce");
+	// Reuses planksSpruce's texture directly (same convention as the spruce
+	// slab/stairs) rather than a new terrain.png cell.
+	trapdoor_spruce = (new TrapDoorTile(161, Material::wood, planksSpruce->tex))->init()->setDestroyTime(3.0f)->setSoundType(SOUND_WOOD)->setCategory(ItemCategory::Structures)->setDescriptionId("trapdoorSpruce");
 
 	//
 	// Special tiles for Pocket Edition is placed at high IDs

@@ -85,6 +85,15 @@ private:
 	std::vector<Player*> _pendingPlayers;
 	bool _allowIncoming;
 	std::map<std::string, unsigned int> _lastPlayerSaveMsByGuid;
+
+	// Last server-accepted position per player entityId, used to sanity-check
+	// incoming MovePlayerPackets (see handle(MovePlayerPacket*)).
+	struct PlayerMoveState {
+		float x, y, z;
+		unsigned int lastMoveMs;
+		PlayerMoveState() : x(0), y(0), z(0), lastMoveMs(0) {}
+	};
+	std::map<int, PlayerMoveState> _lastMoveStateByEntityId;
 };
 
 #endif

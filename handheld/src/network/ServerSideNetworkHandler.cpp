@@ -22,6 +22,9 @@
 #endif
 #include "../server/ServerPlayer.h"
 #include "../world/entity/item/FallingTile.h"
+#ifdef STANDALONE_SERVER
+#include "../server/AccountAuth.h"
+#endif
 
 #include <algorithm>
 #include <cctype>
@@ -382,7 +385,10 @@ void ServerSideNetworkHandler::onDisconnect(const RakNet::RakNetGUID& guid)
 			player->reallyRemoveIfPlayer = true;
 			level->removeEntity(player);
 			//level->removePlayer(player);
-			
+
+			_lastMoveStateByEntityId.erase(player->entityId);
+			_lastPlayerSaveMsByGuid.erase(guid.ToString());
+
 			LOGI("&e@disc: %p", player);
 
 			break;
@@ -406,6 +412,29 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 	if (oldClient || oldServer)
 		loginStatus = oldClient? LoginStatus::Failed_ClientOld : LoginStatus::Failed_ServerOld;
 
+	//
+	// Account authentication — only enforced when the dedicated server was
+	// started with --accountsdb pointing at backend/accounts.db. This keeps
+	// LAN/local-hosted play (from the regular game client) and servers that
+	// haven't opted in working exactly as before.
+	//
+	std::string authenticatedName = packet->clientName.C_String();
+	std::string authenticatedUuid;
+#ifdef STANDALONE_SERVER
+	if (LoginStatus::Success == loginStatus && !minecraft->accountsDbPath.empty()) {
+		std::string canonicalName, uuid;
+		if (AccountAuth::verify(minecraft->accountsDbPath, packet->accountToken.C_String(),
+		                         packet->clientName.C_String(), canonicalName, uuid)) {
+			authenticatedName = canonicalName;
+			authenticatedUuid = uuid;
+			if (findPlayerByName(authenticatedName) != NULL)
+				loginStatus = LoginStatus::Failed_AlreadyConnected;
+		} else {
+			loginStatus = LoginStatus::Failed_NotAuthenticated;
+		}
+	}
+#endif
+
 	RakNet::BitStream bitStream;
 	LoginStatusPacket(loginStatus).write(&bitStream);
 	rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
@@ -420,11 +449,12 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 
 	minecraft->gameMode->initAbilities(newPlayer->abilities);
 	newPlayer->owner = source;
-	newPlayer->name = packet->clientName.C_String();
+	newPlayer->name = authenticatedName;
+	newPlayer->uuid = authenticatedUuid;
 
 	// Load previously saved state (position, health, food, inventory)
 	LOGI("[Server] Calling loadServerPlayer for %s, player ptr=%p", newPlayer->name.c_str(), newPlayer);
-	level->getLevelStorage()->loadServerPlayer(newPlayer);
+	bool hasSavedPosition = level->getLevelStorage()->loadServerPlayer(newPlayer);
 	if (level->difficulty == Difficulty::PEACEFUL) {
 		newPlayer->foodData.setHunger(20);
 		newPlayer->foodData.setSaturation(20.0f);
@@ -432,13 +462,28 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginPac
 
 	_pendingPlayers.push_back(newPlayer);
 
-	// Reset the player so he doesn't spawn inside blocks
-	while (newPlayer->y > 0) {
-		newPlayer->setPos(newPlayer->x, newPlayer->y, newPlayer->z);
-		if (level->getCubes(newPlayer, newPlayer->bb).size() == 0) break;
-		newPlayer->y += 1;
+	// Only run the "don't spawn inside blocks" safety net for genuinely new
+	// players (spawning at the world's default spawn point, which could in
+	// principle land inside terrain). A returning player's saved position was
+	// somewhere they were already standing just fine — trust it completely.
+	//
+	// This loop only checks upward and has no cap, so a false-positive
+	// collision (e.g. from a chunk that finished loading/decorating with a
+	// slightly different shape than it had a moment ago) doesn't just nudge
+	// the player — it walks them all the way up until it finds open air,
+	// which surfaces as "I logged back in on my roof" or "on the surface"
+	// when it misfires for a returning player standing under a low ceiling
+	// or underground. That's exactly what got fixed for singleplayer at some
+	// point; the dedicated server's own copy of this logic never got the
+	// same treatment.
+	if (!hasSavedPosition) {
+		while (newPlayer->y > 0) {
+			newPlayer->setPos(newPlayer->x, newPlayer->y, newPlayer->z);
+			if (level->getCubes(newPlayer, newPlayer->bb).size() == 0) break;
+			newPlayer->y += 1;
+		}
+		newPlayer->moveTo(newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z, newPlayer->yRot, newPlayer->xRot);
 	}
-	newPlayer->moveTo(newPlayer->x, newPlayer->y - newPlayer->heightOffset, newPlayer->z, newPlayer->yRot, newPlayer->xRot);
 
 	// send world seed
 	{
@@ -580,30 +625,74 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, MovePlay
 {
 	if (!level) return;
 
-	//LOGI("MovePlayerPacket\n");
-	Entity* entity = getPlayer(source);
-	if (!entity)
-		entity = level->getEntity(packet->entityId);
+	// A connection may only move the player entity it owns — never trust the
+	// client-supplied entityId to authorize moving some other entity (that used
+	// to fall back to level->getEntity(packet->entityId) for any unrecognized
+	// source, which let a client move an arbitrary entity purely by guessing
+	// its id).
+	Player* player = getPlayer(source);
+	if (!player) return;
 
-	if (entity)
-	{
-		entity->xd = entity->yd = entity->zd = 0;
-		entity->lerpTo(packet->x, packet->y, packet->z, packet->yRot, packet->xRot, 3);
-		packet->entityId = entity->entityId;
+	Entity* entity = player;
+	packet->entityId = entity->entityId;
 
-		if (entity->isPlayer() && level->getLevelStorage()) {
-			const unsigned int nowMs = RakNet::GetTimeMS();
-			const std::string guidKey = source.ToString();
-			unsigned int& lastSaveMs = _lastPlayerSaveMsByGuid[guidKey];
-			if (nowMs - lastSaveMs >= PLAYER_AUTOSAVE_INTERVAL_MS) {
-				level->getLevelStorage()->saveServerPlayer((Player*)entity);
-				lastSaveMs = nowMs;
-			}
-		}
-
-		// broadcast this packet to other clients
-		redistributePacket(packet, source);
+	const unsigned int nowMs = RakNet::GetTimeMS();
+	PlayerMoveState& moveState = _lastMoveStateByEntityId[entity->entityId];
+	if (moveState.lastMoveMs == 0) {
+		// First move seen for this entity this session - seed state instead of
+		// validating against (0,0,0).
+		moveState.x = entity->x;
+		moveState.y = entity->y;
+		moveState.z = entity->z;
+		moveState.lastMoveMs = nowMs;
 	}
+
+	// Sanity-check the move: reject implausible teleports/speedhacks. Flying
+	// players can legitimately cover a lot of ground fast, so only clamp
+	// grounded movement.
+	bool accepted = true;
+	if (!player->abilities.flying && !player->abilities.mayfly) {
+		const float dx = packet->x - moveState.x;
+		const float dy = packet->y - moveState.y;
+		const float dz = packet->z - moveState.z;
+		const float distSqr = dx * dx + dy * dy + dz * dz;
+		const float elapsedS = std::max(0.05f, (nowMs - moveState.lastMoveMs) / 1000.0f);
+		// Generous cap (~20 blocks/s) to tolerate sprinting, knockback, falling
+		// and network jitter, while still catching cross-map teleports.
+		const float maxDist = 20.0f * elapsedS;
+		if (distSqr > maxDist * maxDist)
+			accepted = false;
+	}
+
+	if (!accepted) {
+		// Don't relay the rejected position to other clients; snap the sender
+		// back to its last validated spot instead.
+		MovePlayerPacket correction(entity->entityId, moveState.x, moveState.y, moveState.z, entity->yRot, entity->xRot);
+		RakNet::BitStream bitStream;
+		correction.write(&bitStream);
+		rakPeer->Send(&bitStream, HIGH_PRIORITY, RELIABLE_ORDERED, 0, source, false);
+		return;
+	}
+
+	moveState.x = packet->x;
+	moveState.y = packet->y;
+	moveState.z = packet->z;
+	moveState.lastMoveMs = nowMs;
+
+	entity->xd = entity->yd = entity->zd = 0;
+	entity->lerpTo(packet->x, packet->y, packet->z, packet->yRot, packet->xRot, 3);
+
+	if (level->getLevelStorage()) {
+		const std::string guidKey = source.ToString();
+		unsigned int& lastSaveMs = _lastPlayerSaveMsByGuid[guidKey];
+		if (nowMs - lastSaveMs >= PLAYER_AUTOSAVE_INTERVAL_MS) {
+			level->getLevelStorage()->saveServerPlayer(player);
+			lastSaveMs = nowMs;
+		}
+	}
+
+	// broadcast this packet to other clients
+	redistributePacket(packet, source);
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, RemoveBlockPacket* packet){
@@ -686,23 +775,19 @@ void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerEq
 	if (!player) return;
 	if (rakPeer->GetMyGUID() == player->owner) return;
 
-	// override the player's inventory
-	//int slot = player->inventory->getSlot(packet->itemId, packet->itemAuxValue);
-	int slot = Inventory::MAX_SELECTION_SIZE;
-	if (slot >= 0) {
-		if (packet->itemId == 0) {
-			player->inventory->clearSlot(slot);
-		} else {
-			// @note: 128 is an ugly hack for depletable items.
-			// @todo: fix
-			ItemInstance newItem(packet->itemId, 128, packet->itemAuxValue);
-			player->inventory->replaceSlot(slot, &newItem);
-		}
-		player->inventory->moveToSelectedSlot(slot, true);
-		redistributePacket(packet, source);
-	} else {
-		LOGW("Warning: Remote player doesn't have his thing, Odd!\n");
-	}
+	// This packet is purely cosmetic: it just says "this is the item I'm
+	// currently holding" so everyone ELSE can render it in this player's hand
+	// (see ClientSideNetworkHandler::handle(PlayerEquipmentPacket*), which
+	// fakes it into inventory slot 9 of its own local, display-only copy of a
+	// *remote* player purely to drive the third-person held-item model).
+	//
+	// The server must never do that to its own Player object for `source` —
+	// that IS the player's real, authoritative inventory, and slot 9 is a
+	// real storage slot (it's what hotbar slot 0 is linked to). Faking a
+	// stack of the held item in there on every equip change was clobbering
+	// the player's actual first inventory slot with a bogus item — count 128,
+	// regardless of what was really stored or how many they actually had.
+	redistributePacket(packet, source);
 }
 
 void ServerSideNetworkHandler::handle(const RakNet::RakNetGUID& source, PlayerArmorEquipmentPacket* packet) {
@@ -858,6 +943,25 @@ void ServerSideNetworkHandler::handle( const RakNet::RakNetGUID& source, SendInv
 	if (entity && entity->isPlayer()) {
 		Player* p = (Player*)entity;
 		p->inventory->replace(packet->items, packet->numItems);
+
+		// replace() calls clearInventory(), which resets every hotbar link to
+		// unmapped (see ClientSideNetworkHandler::handle(SendInventoryPacket*)
+		// for the same issue on the client side). Left as-is, the item is still
+		// physically in storage but no longer reachable from any hotbar slot —
+		// and since we persist this inventory to disk right below, that broken
+		// mapping becomes what the player sees the next time they log in
+		// (looking like their first hotbar slot, and potentially others, got
+		// cleared). Re-wire each non-empty slot back into the hotbar, exactly
+		// like the client does after receiving a restore of its own.
+		{
+			Inventory* inv = p->inventory;
+			const int base = inv->getNumLinkedSlots();
+			for (int i = 0; i < packet->numItems && (base + i) < inv->getContainerSize(); ++i) {
+				if (!packet->items[i].isNull())
+					inv->linkEmptySlot(base + i);
+			}
+		}
+
 		if ((packet->extra & SendInventoryPacket::ExtraDrop) != 0) {
 			p->inventory->dropAll(false);
             //@todo @armor : Drop armor

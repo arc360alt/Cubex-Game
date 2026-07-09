@@ -201,6 +201,10 @@ public:
 	// It sets the base path to where worlds can be written (sdcard on android)
 	std::string externalStoragePath;
 	std::string externalCacheStoragePath;
+	// Path to the account database (backend/accounts.db). Only set/used by the
+	// dedicated server; when non-empty, joining players must present a valid
+	// account token (see ServerSideNetworkHandler::handle(LoginPacket*)).
+	std::string accountsDbPath;
 protected:
 	Timer timer;
     // @note @attn @warn: this is dangerous as fuck!

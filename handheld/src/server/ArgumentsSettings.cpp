@@ -44,7 +44,7 @@ static int parseDifficulty(const std::string& value) {
 }
 
 ArgumentsSettings::ArgumentsSettings(int numArguments, char** arguments)
-: externalPath("."), levelName("level"), showHelp(false), port(19132), serverKey(""), cachePath("."), levelDir("level"), configPath("server.properties"), gameType(GameType::Survival), worldType(WorldType::Old), difficulty(Difficulty::NORMAL) {
+: externalPath("."), levelName("level"), showHelp(false), port(19132), serverKey(""), cachePath("."), levelDir("level"), configPath("server.properties"), accountsDbPath(""), gameType(GameType::Survival), worldType(WorldType::Old), difficulty(Difficulty::NORMAL) {
 	for(int a = 0; a < numArguments; ++a) {
 		if(strcmp(arguments[a], "--config") == 0 && a + 1 < numArguments) {
 			configPath = std::string(arguments[a + 1]);
@@ -107,6 +107,11 @@ ArgumentsSettings::ArgumentsSettings(int numArguments, char** arguments)
 				difficulty = parseDifficulty(arguments[a + 1]);
 				a++;
 			}
+		} else if(strcmp(arguments[a], "--accountsdb") == 0) {
+			if(a + 1 < numArguments) {
+				accountsDbPath = std::string(arguments[a + 1]);
+				a++;
+			}
 		}
 	}
 }
@@ -135,6 +140,7 @@ void ArgumentsSettings::loadConfigFile(const std::string& path) {
 		else if (key == "gamemode") gameType = parseGameType(value);
 		else if (key == "worldtype") worldType = parseWorldType(value);
 		else if (key == "difficulty") difficulty = parseDifficulty(value);
+		else if (key == "accountsdb") accountsDbPath = value;
 	}
 }
 std::string ArgumentsSettings::getExternalPath() {
@@ -173,4 +179,8 @@ int ArgumentsSettings::getDifficulty() {
 
 std::string ArgumentsSettings::getConfigPath() {
 	return configPath;
+}
+
+std::string ArgumentsSettings::getAccountsDbPath() {
+	return accountsDbPath;
 }

@@ -48,6 +48,7 @@ int main(int numArguments, char* pszArgs[]) {
 		printf("--worldtype - old|infinite (or 0|1) [default: old]\n");
 		printf("--difficulty - peaceful|easy|normal|hard (or 0|1|2|3) [default: normal]\n");
 		printf("--serverkey - The key that the server should use for API calls. [default: \"%s\"]\n", defaultSettings.getServerKey().c_str());
+		printf("--accountsdb - Path to the accounts.db created by backend/server.py. When set, only players who log in with a valid account token may join. [default: \"%s\" (disabled - anyone may join)]\n", defaultSettings.getAccountsDbPath().c_str());
 		printf("-------------------------------------------------------\n");
 		return 0;
 	}
@@ -63,6 +64,7 @@ int main(int numArguments, char* pszArgs[]) {
 	g_app = app;
 	((MAIN_CLASS*)g_app)->externalStoragePath = aSettings.getExternalPath();
 	((MAIN_CLASS*)g_app)->externalCacheStoragePath = aSettings.getCachePath();
+	((MAIN_CLASS*)g_app)->accountsDbPath = aSettings.getAccountsDbPath();
 
 	g_app->init(appContext);
 	const int serverGameType = LevelSettings::validateGameType(aSettings.getGameType());

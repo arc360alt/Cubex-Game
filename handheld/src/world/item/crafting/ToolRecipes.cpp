@@ -51,6 +51,15 @@ void ToolRecipes::addRecipes( Recipes* r )
 		}
 	}
 
+	// Wooden tools aren't per-species (there's one Item::*_wood for all of
+	// them), so spruce planks should craft the exact same tools as oak -
+	// register the wood-tier (m==0) shapes again with planksSpruce as 'X'.
+	for (int t = 0; t < NumRecipes; t++) {
+		Item* target = (Item*) map[t][0];
+		r->addShapedRecipe( ItemInstance(target), shapes[t],
+			definition('#', Item::stick, 'X', Tile::planksSpruce) );
+	}
+
 	r->addShapedRecipe( ItemInstance(Item::shears), //
 	        " #", //
 	        "# ", //

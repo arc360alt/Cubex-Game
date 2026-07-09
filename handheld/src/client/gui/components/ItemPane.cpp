@@ -71,6 +71,13 @@ void ItemPane::renderBatch( std::vector<GridItem>& items, float alpha )
 	t.endOverrideAndDraw();
 
 	t.beginOverride();
+	// Blocks with no gui_blocks.png atlas entry (e.g. the whole spruce set)
+	// fall back to ItemRenderer's real 3D tile-preview render, which pushes
+	// its own Z translation independent of the guiSlotItem background drawn
+	// just above - without disabling depth test here, those items lose the
+	// depth test against that background and render invisible (same bug
+	// found in ArmorScreen's slot rendering).
+	glDisable2(GL_DEPTH_TEST);
 	for (unsigned int i = 0; i < items.size(); ++i) {
 		GridItem& item = items[i];
 		CItem* citem = cat[item.id];
@@ -79,6 +86,7 @@ void ItemPane::renderBatch( std::vector<GridItem>& items, float alpha )
 			Gui::floorAlignToScreenPixel(item.xf + itemBbox.w - 16),
 			Gui::floorAlignToScreenPixel(2 + item.yf), 16, 16, false);
 	}
+	glEnable2(GL_DEPTH_TEST);
 	t.endOverrideAndDraw();
 
 	t.beginOverride();

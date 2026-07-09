@@ -141,6 +141,11 @@ public:
 	virtual void openTextEdit( TileEntity* tileEntity );
 	void setSkinTexture(const std::string& path) { textureName = path; }
 	std::string getSkinTexture() const { return textureName; }
+	// Path to this player's chosen cape texture (local resource path, or an
+	// absolute path to a backend-downloaded cape for a remote player); empty
+	// means no cape. See PlayerRenderer::additionalRendering().
+	void setCapeTexture(const std::string& path) { capeTexture = path; }
+	std::string getCapeTexture() const { return capeTexture; }
     //AbstractContainerMenu inventoryMenu;
     //AbstractContainerMenu containerMenu;
     int getArmorValue();
@@ -169,6 +174,15 @@ public:
     float oBob, bob;
 
     std::string name;
+    // Stable account identifier (from backend/accounts.db), set by the
+    // dedicated server after a successful account login. Empty for
+    // unauthenticated/local sessions. When set, it — not `name` — is used to
+    // key server player-data files, so renaming an account doesn't orphan
+    // its saved position/inventory. See ExternalFileLevelStorage::getPlayerDataPath.
+    std::string uuid;
+    // Path to this player's cape texture ("" = no cape). See setCapeTexture()/
+    // getCapeTexture() below.
+    std::string capeTexture;
     int dimension;
 
 	Abilities abilities;

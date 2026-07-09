@@ -24,7 +24,10 @@ public:
 	static const int C_IS_UPPER_MASK = 8;
 	static const int C_RIGHT_HINGE_MASK = 16;
 
-	DoorTile(int id, const Material* material);
+	// texOverride, when >= 0, replaces the material-based default (wood vs
+	// metal) texture lookup — needed to support more than one wood species of
+	// door, since they all share Material::wood.
+	DoorTile(int id, const Material* material, int texOverride = -1);
 	int getTexture(LevelSource* level, int x, int y, int z, int face);
 
 	bool blocksLight();

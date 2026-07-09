@@ -9,6 +9,7 @@
 #include "../../item/Item.h"
 #include "../../item/ItemInstance.h"
 #include "../FoliageColor.h"
+#include "../biome/Biome.h"
 
 class Entity;
 
@@ -55,7 +56,10 @@ public:
             return FoliageColor::getBirchColor();
         }
 
-        return FoliageColor::getDefaultColor();
+        // Normal (oak) leaves tint per-biome, same as grass — everything
+        // else (spruce/birch above) keeps its fixed color, matching vanilla.
+        Biome* biome = level->getBiome(x, z);
+        return biome ? biome->leafColor : FoliageColor::getDefaultColor();
     }
 
     void neighborChanged(Level* level, int x, int y, int z, int type) {

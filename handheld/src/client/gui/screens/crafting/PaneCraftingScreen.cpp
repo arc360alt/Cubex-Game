@@ -223,6 +223,11 @@ void PaneCraftingScreen::render(int xm, int ym, float a) {
 	// Right side
 	if (currentItem) {
 		t.beginOverride();
+		// See ItemPane::renderBatch for why this is needed: items with no
+		// gui_blocks.png atlas entry (the spruce set) fall back to a real
+		// 3D tile-preview render with its own Z push, which loses the
+		// depth test against whatever's drawn behind it otherwise.
+		glDisable2(GL_DEPTH_TEST);
 		for (unsigned int i = 0; i < currentItem->neededItems.size(); ++i) {
 			const float xx = slotBx + slotWidth  * (float)(i % 2);
 			const float yy = slotBy + slotHeight * (float)(i / 2);
@@ -231,6 +236,7 @@ void PaneCraftingScreen::render(int xm, int ym, float a) {
 			if (reqItem.getAuxValue() == -1) reqItem.setAuxValue(0);
 			ItemRenderer::renderGuiItem(NULL, minecraft->textures, &reqItem, xx, yy, 16, 16, true);
 		}
+		glEnable2(GL_DEPTH_TEST);
 		t.endOverrideAndDraw();
 
 		char buf[16];

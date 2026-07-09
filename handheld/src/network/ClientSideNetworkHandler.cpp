@@ -107,12 +107,14 @@ void ClientSideNetworkHandler::onConnect(const RakNet::RakNetGUID& hostGuid)
 
 	clearChunksLoaded();
 	// Use verified account username if logged in, otherwise fall back to options username
+	std::string accountToken;
 #ifndef STANDALONE_SERVER
 	if (!minecraft->options.accountToken.empty() && !minecraft->options.accountUsername.empty()) {
 		minecraft->user->name = minecraft->options.accountUsername;
 	}
+	accountToken = minecraft->options.accountToken;
 #endif
-	LoginPacket packet(minecraft->user->name.c_str(), SharedConstants::NetworkProtocolVersion);
+	LoginPacket packet(minecraft->user->name.c_str(), SharedConstants::NetworkProtocolVersion, accountToken.c_str());
 	raknetInstance->send(packet);
 }
 
@@ -156,6 +158,18 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, LoginSta
 		LOGI("Disconnect! Server is outdated!\n");
 #ifndef STANDALONE_SERVER
 		minecraft->setScreen(new DisconnectionScreen("Could not connect: Outdated server!"));
+#endif
+	}
+	if (packet->status == LoginStatus::Failed_NotAuthenticated) {
+		LOGI("Disconnect! Not authenticated!\n");
+#ifndef STANDALONE_SERVER
+		minecraft->setScreen(new DisconnectionScreen("Could not connect: You must be logged in to a valid account to join this server."));
+#endif
+	}
+	if (packet->status == LoginStatus::Failed_AlreadyConnected) {
+		LOGI("Disconnect! Account already connected!\n");
+#ifndef STANDALONE_SERVER
+		minecraft->setScreen(new DisconnectionScreen("Could not connect: This account is already connected to the server."));
 #endif
 	}
 }
@@ -347,6 +361,12 @@ void ClientSideNetworkHandler::handle(const RakNet::RakNetGUID& source, AddPlaye
 				if (Textures::isTextureIdValid(texId))
 					player->setSkinTexture(skinPath);
 			}
+
+			// Same idea for their chosen cape, if they have one selected.
+			std::string capeName = BackendClient::getPlayerCape(backendUrl, username);
+			std::string capePath = BackendClient::resolveCapeTexturePath(backendUrl, capeName);
+			if (!capePath.empty())
+				player->setCapeTexture(capePath);
 		}
 	}
 #endif

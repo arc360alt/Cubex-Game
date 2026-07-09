@@ -6,6 +6,7 @@ import os
 import re
 import secrets
 import sqlite3
+import uuid as uuidlib
 
 from flask import Flask, g, jsonify, request, send_file
 
@@ -15,8 +16,13 @@ from flask import Flask, g, jsonify, request, send_file
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "accounts.db")
 SKINS_DIR = os.path.join(BASE_DIR, "skins")
+# Curated cape images go here. Unlike skins, players don't upload these
+# themselves — an admin drops a small set of approved cape PNGs into this
+# folder by hand, and players just pick one (see GET /api/capes).
+CAPES_DIR = os.path.join(BASE_DIR, "capes")
 
 os.makedirs(SKINS_DIR, exist_ok=True)
+os.makedirs(CAPES_DIR, exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # App
@@ -27,7 +33,17 @@ app = Flask(__name__)
 # Database helpers
 # ---------------------------------------------------------------------------
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{1,25}$")
+CAPE_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,50}$")
 MAX_SKIN_BYTES = 8 * 1024 * 1024  # 8 MB
+
+
+def available_capes():
+    """Names (without .png) of every cape file an admin has dropped into CAPES_DIR."""
+    names = []
+    for fn in os.listdir(CAPES_DIR):
+        if fn.lower().endswith(".png"):
+            names.append(fn[:-4])
+    return sorted(names)
 
 
 def get_db() -> sqlite3.Connection:
@@ -54,11 +70,31 @@ def init_db():
                 id       INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT    NOT NULL UNIQUE,
                 password TEXT    NOT NULL,
-                token    TEXT    UNIQUE
+                token    TEXT    UNIQUE,
+                uuid     TEXT
             )
             """
         )
+        # Migrate databases created before the uuid/cape columns existed.
+        existing_cols = {row["name"] for row in db.execute("PRAGMA table_info(accounts)")}
+        if "uuid" not in existing_cols:
+            db.execute("ALTER TABLE accounts ADD COLUMN uuid TEXT")
+        if "cape" not in existing_cols:
+            db.execute("ALTER TABLE accounts ADD COLUMN cape TEXT NOT NULL DEFAULT ''")
+        db.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_accounts_uuid ON accounts(uuid)")
         db.commit()
+
+
+def ensure_uuid(db: sqlite3.Connection, row: sqlite3.Row) -> str:
+    """Every account gets a UUID that never changes even if the username does.
+    Accounts created before this existed get one lazily, the moment they next
+    contact the server (login or verify)."""
+    if row["uuid"]:
+        return row["uuid"]
+    new_uuid = str(uuidlib.uuid4())
+    db.execute("UPDATE accounts SET uuid = ? WHERE id = ?", (new_uuid, row["id"]))
+    db.commit()
+    return new_uuid
 
 
 def hash_password(password: str) -> str:
@@ -122,13 +158,14 @@ def register():
         return jsonify({"error": "username already taken"}), 409
 
     token = secrets.token_hex(32)
+    account_uuid = str(uuidlib.uuid4())
     db.execute(
-        "INSERT INTO accounts (username, password, token) VALUES (?, ?, ?)",
-        (username, hash_password(password), token),
+        "INSERT INTO accounts (username, password, token, uuid) VALUES (?, ?, ?, ?)",
+        (username, hash_password(password), token, account_uuid),
     )
     db.commit()
 
-    return jsonify({"token": token, "username": username}), 201
+    return jsonify({"token": token, "username": username, "uuid": account_uuid}), 201
 
 
 # ---------------------------------------------------------------------------
@@ -156,8 +193,9 @@ def login():
         "UPDATE accounts SET token = ? WHERE id = ?", (token, row["id"])
     )
     db.commit()
+    account_uuid = ensure_uuid(db, row)
 
-    return jsonify({"token": token, "username": username}), 200
+    return jsonify({"token": token, "username": username, "uuid": account_uuid}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -168,7 +206,9 @@ def verify():
     row = _get_user_from_token()
     if row is None:
         return jsonify({"error": "invalid or missing token"}), 401
-    return jsonify({"username": row["username"]}), 200
+    db = get_db()
+    account_uuid = ensure_uuid(db, row)
+    return jsonify({"username": row["username"], "uuid": account_uuid}), 200
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +251,62 @@ def change_username():
     db.commit()
 
     return jsonify({"username": new_username}), 200
+
+
+# ---------------------------------------------------------------------------
+# GET /api/capes — list admin-provided cape names (no images, just the catalog)
+# ---------------------------------------------------------------------------
+@app.route("/api/capes", methods=["GET"])
+def list_capes():
+    return jsonify({"capes": available_capes()}), 200
+
+
+# ---------------------------------------------------------------------------
+# GET /api/capes/<name> — serve one cape's image
+# ---------------------------------------------------------------------------
+@app.route("/api/capes/<name>", methods=["GET"])
+def get_cape_image(name):
+    if not CAPE_NAME_RE.match(name):
+        return jsonify({"error": "invalid cape name"}), 400
+    cape_path = os.path.join(CAPES_DIR, f"{name}.png")
+    if not os.path.isfile(cape_path):
+        return jsonify({"error": "no such cape"}), 404
+    return send_file(cape_path, mimetype="image/png")
+
+
+# ---------------------------------------------------------------------------
+# PUT /api/cape — set the authenticated account's selected cape ("" = none)
+# ---------------------------------------------------------------------------
+@app.route("/api/cape", methods=["PUT"])
+def set_cape():
+    row = _get_user_from_token()
+    if row is None:
+        return jsonify({"error": "invalid or missing token"}), 401
+
+    data = request.get_json(silent=True) or {}
+    cape = data.get("cape", "").strip()
+
+    if cape and cape not in available_capes():
+        return jsonify({"error": "no such cape"}), 400
+
+    db = get_db()
+    db.execute("UPDATE accounts SET cape = ? WHERE id = ?", (cape, row["id"]))
+    db.commit()
+
+    return jsonify({"cape": cape}), 200
+
+
+# ---------------------------------------------------------------------------
+# GET /api/cape/<username> — which cape (if any) a player has selected.
+# Public/unauthenticated: other players need this to render your cape.
+# ---------------------------------------------------------------------------
+@app.route("/api/cape/<username>", methods=["GET"])
+def get_player_cape(username):
+    db = get_db()
+    row = db.execute(
+        "SELECT cape FROM accounts WHERE username = ?", (username,)
+    ).fetchone()
+    return jsonify({"cape": row["cape"] if row and row["cape"] else ""}), 200
 
 
 # ---------------------------------------------------------------------------

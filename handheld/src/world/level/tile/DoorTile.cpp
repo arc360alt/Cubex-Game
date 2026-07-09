@@ -4,11 +4,15 @@
 #include "../../item/Item.h"
 #include "../../entity/player/Player.h"
 
-DoorTile::DoorTile(int id, const Material* material)
+DoorTile::DoorTile(int id, const Material* material, int texOverride)
 :	super(id, material)
 {
-	tex = 1 + 6 * 16;
-	if (material == Material::metal) tex++;
+	if (texOverride >= 0) {
+		tex = texOverride;
+	} else {
+		tex = 1 + 6 * 16;
+		if (material == Material::metal) tex++;
+	}
 
 	float r = 0.5f;
 	float h = 1.0f;
@@ -186,7 +190,10 @@ void DoorTile::neighborChanged(Level* level, int x, int y, int z, int type) {
 
 int DoorTile::getResource(int data, Random* random) {
 	if ((data & 8) != 0) return 0;
-	if (material == Material::metal) return Item::door_iron->id;
+	// Identity-based rather than material-based, since more than one wood
+	// species of door now shares Material::wood.
+	if (this == Tile::door_iron) return Item::door_iron->id;
+	if (this == Tile::door_spruce) return Item::door_spruce->id;
 	return Item::door_wood->id;
 }
 

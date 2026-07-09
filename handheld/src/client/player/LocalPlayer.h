@@ -98,6 +98,9 @@ private:
 	int sentInventoryItemId;
 	int sentInventoryItemData;
 
+	// Ticks until the next periodic full-inventory resync (see tick()).
+	int _inventorySyncTicks;
+
 	int armorTypeHash;
 	bool isSprinting;
     int sprintTickCounter;

@@ -47,6 +47,13 @@ private:
 	std::string _accountStatus;
 	int selectedCategory;
 
+	// Cape picker (account tab, under Logout)
+	std::vector<std::string> _capeChoices;       // admin-provided cape names from the backend
+	std::vector<std::string> _capeTexturePaths;  // parallel array: local cached texture path per choice
+	bool _capesFetched;
+	void getCapeBoxRect(int index, int cx, int hH, int& bx, int& by, int& bw, int& bh) const;
+	void applyCapeSelection(const std::string& capeName);
+
 	// Sidebar scroll state
 	float _catScrollY;
 	float _catScrollVelocity;

@@ -103,7 +103,15 @@ bool Recipe::isAnyAuxValue( int id )
 	if (!isTile) return false;
 	if (id == Tile::cloth->id
 	 || id == Tile::stoneSlabHalf->id
-	 || id == Tile::sandStone->id)
+	 || id == Tile::sandStone->id
+	 // treeTrunk's aux value is the wood species (oak/spruce/birch) - it
+	 // must matter here the same way it matters in ShapedRecipe::matches(),
+	 // otherwise ItemPack (used for the crafting screen's ingredient icon
+	 // and have/need counts) pools every species into one "any aux" bucket:
+	 // the requirement icon renders with aux 0 (always looks like oak) and
+	 // any species in the player's inventory satisfies it, regardless of
+	 // what the recipe actually asked for.
+	 || id == Tile::treeTrunk->id)
 		return false;
 	return true;
 }

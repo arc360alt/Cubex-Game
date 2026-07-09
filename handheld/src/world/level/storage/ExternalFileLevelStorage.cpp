@@ -362,11 +362,25 @@ static std::string getLegacyPlayerDataPath(const std::string& levelPath, const s
 	return levelPath + "/players/" + sanitizePlayerName(playerName) + ".dat";
 }
 
+// Account UUIDs (see Player::uuid) never change even if a player renames
+// their account, so prefer keying player-data files by uuid once one is
+// known. Falls back to the name-keyed path for unauthenticated/local
+// sessions, which never have a uuid.
+static std::string getUuidPlayerDataPath(const std::string& levelPath, const std::string& accountUuid) {
+	return levelPath + "/players/" + sanitizePlayerName(accountUuid) + ".dat";
+}
+
+static std::string getPlayerDataPath(const std::string& levelPath, Player* player) {
+	if (!player->uuid.empty())
+		return getUuidPlayerDataPath(levelPath, player->uuid);
+	return getCanonicalPlayerDataPath(levelPath, player->name);
+}
+
 void ExternalFileLevelStorage::saveServerPlayer(Player* player)
 {
 	const std::string dir = levelPath + "/players/";
 	createFolderIfNotExists(dir.c_str());
-	const std::string path = getCanonicalPlayerDataPath(levelPath, player->name);
+	const std::string path = getPlayerDataPath(levelPath, player);
 
 	CompoundTag* tag = new CompoundTag();
 	player->saveWithoutId(tag);
@@ -387,21 +401,30 @@ void ExternalFileLevelStorage::saveServerPlayer(Player* player)
 	}
 }
 
-void ExternalFileLevelStorage::loadServerPlayer(Player* player)
+bool ExternalFileLevelStorage::loadServerPlayer(Player* player)
 {
-	const std::string canonicalPath = getCanonicalPlayerDataPath(levelPath, player->name);
+	const std::string canonicalPath = getPlayerDataPath(levelPath, player);
 	FILE* f = fopen(canonicalPath.c_str(), "rb");
+	if (!f && !player->uuid.empty()) {
+		// This account has a uuid but no uuid-keyed save yet — it may be a
+		// returning player from before uuids existed (or before this account
+		// was ever contacted for one). Fall back to their old name-keyed file
+		// so they don't lose progress; saveServerPlayer() will write the
+		// uuid-keyed file from now on, migrating them automatically.
+		const std::string legacyByName = getCanonicalPlayerDataPath(levelPath, player->name);
+		f = fopen(legacyByName.c_str(), "rb");
+	}
 	if (!f) {
 		// Backward compatibility with older mixed-case filename scheme.
 		const std::string legacyPath = getLegacyPlayerDataPath(levelPath, player->name);
 		f = fopen(legacyPath.c_str(), "rb");
 	}
-	if (!f) return;  // First connection — use defaults
+	if (!f) return false;  // First connection — use defaults
 
 	fseek(f, 0, SEEK_END);
 	long size = ftell(f);
 	fseek(f, 0, SEEK_SET);
-	if (size <= 0) { fclose(f); return; }
+	if (size <= 0) { fclose(f); return false; }
 
 	unsigned char* data = new unsigned char[size];
 	bool ok = ((long)fread(data, 1, size, f) == size);
@@ -419,6 +442,7 @@ void ExternalFileLevelStorage::loadServerPlayer(Player* player)
 		}
 	}
 	delete[] data;
+	return ok;
 }
 
 bool ExternalFileLevelStorage::hasOperators() const
@@ -829,7 +853,6 @@ int ExternalFileLevelStorage::savePendingUnsavedChunks( int maxCount ) {
 void ExternalFileLevelStorage::saveAll( Level* level, std::vector<LevelChunk*>& levelChunks ) {
     ChunkStorage::saveAll(level, levelChunks);
 	int numChunks = savePendingUnsavedChunks(-1);
-    LOGI("Saving %d additional chunks.\n", numChunks);
 }
 
 void ExternalFileLevelStorage::finishPreload()

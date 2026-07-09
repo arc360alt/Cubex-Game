@@ -74,7 +74,7 @@ public:
     void saveAll(Level* level, std::vector<LevelChunk*>& levelChunks);
 
 	void saveServerPlayer(Player* player);
-	void loadServerPlayer(Player* player);
+	bool loadServerPlayer(Player* player);
 	bool hasOperators() const;
 	bool isOperator(const std::string& name) const;
 	bool setOperator(const std::string& name, bool isOp);

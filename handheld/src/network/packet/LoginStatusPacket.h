@@ -7,6 +7,8 @@ namespace LoginStatus {
 	const int Success = 0;
 	const int Failed_ClientOld = 1;
 	const int Failed_ServerOld = 2;
+	const int Failed_NotAuthenticated = 3;
+	const int Failed_AlreadyConnected = 4;
 }
 
 class LoginStatusPacket : public Packet {

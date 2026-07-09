@@ -36,7 +36,9 @@ public:
 
 	// Per-user player state save/load (used by dedicated server)
 	virtual void saveServerPlayer(Player* player) {}
-	virtual void loadServerPlayer(Player* player) {}
+	// Returns true if a previously-saved position/inventory was actually found
+	// and loaded for this player, false if they're new (defaults left as-is).
+	virtual bool loadServerPlayer(Player* player) { return false; }
 	virtual bool hasOperators() const { return false; }
 	virtual bool isOperator(const std::string& name) const { return false; }
 	virtual bool setOperator(const std::string& name, bool isOp) { return false; }

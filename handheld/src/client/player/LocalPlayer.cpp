@@ -1,6 +1,7 @@
 #include "LocalPlayer.h"
 #include "../Minecraft.h"
 #include "../../ErrorCodes.h"
+#include "../../SharedConstants.h"
 #include "../../platform/input/Keyboard.h"
 #include "../../world/entity/EntityEvent.h"
 #include "../../world/entity/player/Player.h"
@@ -50,6 +51,7 @@ LocalPlayer::LocalPlayer(Minecraft* minecraft, Level* level, User* user, int dim
 	input(NULL),
 	sentInventoryItemId(-1),
 	sentInventoryItemData(-1),
+	_inventorySyncTicks(0),
 	autoJumpEnabled(minecraft ? minecraft->options.autoJump : true),
 	armorTypeHash(0),
 	isSprinting(false),
@@ -152,6 +154,19 @@ void LocalPlayer::tick() {
 			minecraft->raknetInstance->send(packet);
 		}
 
+		// Periodically resync our whole inventory to the server. Several
+		// local-only inventory actions never tell the server anything on
+		// their own: dropping a single item with the drop key only sends a
+		// DropItemPacket (which just spawns the world entity — it doesn't
+		// touch the server's copy of our inventory), and rearranging slots in
+		// our own inventory screen sends nothing at all. Without this, the
+		// server's saved copy silently drifts from what we actually have, and
+		// that stale copy is what gets restored on our next login.
+		if (++_inventorySyncTicks >= 5 * SharedConstants::TicksPerSecond) {
+			_inventorySyncTicks = 0;
+			SendInventoryPacket packet(this, false);
+			minecraft->raknetInstance->send(packet);
+		}
 	}
 /*
     for (int i = 0; i < 4; ++i) {

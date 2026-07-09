@@ -156,6 +156,7 @@ public:
     static Item* minecart;
     static Item* saddle;
     static Item* door_iron;
+    static Item* door_spruce;
     static Item* redStone;
     static Item* snowBall;
 

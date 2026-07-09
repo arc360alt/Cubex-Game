@@ -36,7 +36,6 @@ FillingContainer::~FillingContainer()
 
 void FillingContainer::clearInventory()
 {
-	LOGI("[FillingContainer] clearInventory called: this=%p", this);
 	for (int i = 0; i < numLinkedSlots; ++i) {
 		linkedSlots[i] = LinkedSlot(i);
 	}
@@ -117,7 +116,7 @@ bool FillingContainer::add( ItemInstance* item )
 
 	if (!item || item->isNull()) return true;
 
-	LOGI("[FillingContainer] add called: item id=%d count=%d data=%d", item->id, item->count, item->getAuxValue());
+	//LOGI("[FillingContainer] add called: item id=%d count=%d data=%d", item->id, item->count, item->getAuxValue());
 
 		int lastSize;
 		bool added = false;
@@ -125,7 +124,7 @@ bool FillingContainer::add( ItemInstance* item )
 			do {
 				lastSize = item->count;
 				item->count = addResource(*item);
-				LOGI("[FillingContainer] add: after addResource, item id=%d count=%d data=%d", item->id, item->count, item->getAuxValue());
+				//LOGI("[FillingContainer] add: after addResource, item id=%d count=%d data=%d", item->id, item->count, item->getAuxValue());
 			} while (item->count > 0 && item->count < lastSize);
 			if (item->count == 0) {
 				return true;
@@ -134,16 +133,16 @@ bool FillingContainer::add( ItemInstance* item )
 		}
 
 		int slot = getFreeSlot();
-		LOGI("[FillingContainer] add: getFreeSlot returned %d", slot);
+		//LOGI("[FillingContainer] add: getFreeSlot returned %d", slot);
 		if (slot >= 0) {
 			items[slot] = ItemInstance::clone(item);
 			linkEmptySlot(slot);
-			LOGI("[FillingContainer] add: placed in slot %d, id=%d count=%d data=%d", slot, items[slot]->id, items[slot]->count, items[slot]->getAuxValue());
+			//LOGI("[FillingContainer] add: placed in slot %d, id=%d count=%d data=%d", slot, items[slot]->id, items[slot]->count, items[slot]->getAuxValue());
 			item->count = 0;
 			return true;
 		}
 
-		LOGI("[FillingContainer] add: no free slot found, item not added");
+		//LOGI("[FillingContainer] add: no free slot found, item not added");
 		return false;
 }
 
@@ -181,7 +180,7 @@ void FillingContainer::setItem( int slot, ItemInstance* item )
 	if (slot < 0 || slot >= numTotalSlots)
 		return;
 
-	LOGI("[FillingContainer] setItem called: slot=%d, item id=%d count=%d data=%d", slot, item ? item->id : -1, item ? item->count : -1, item ? item->getAuxValue() : -1);
+	//LOGI("[FillingContainer] setItem called: slot=%d, item id=%d count=%d data=%d", slot, item ? item->id : -1, item ? item->count : -1, item ? item->getAuxValue() : -1);
 
 	if (ItemList* p = getSlotList(slot)) {
 		ItemList& pile = *p;
@@ -216,7 +215,7 @@ ListTag* FillingContainer::save( ListTag* listTag )
 
 			ItemInstance iitem(*item);
 			iitem.save(tag);
-			LOGI("[FillingContainer] save: slot=%d id=%d count=%d data=%d", i, item->id, item->count, item->getAuxValue());
+			//LOGI("[FillingContainer] save: slot=%d id=%d count=%d data=%d", i, item->id, item->count, item->getAuxValue());
 			listTag->add(tag);
 		}
 	}
@@ -248,17 +247,17 @@ void FillingContainer::load( ListTag* inventoryList )
 					int invSlot = item->getAuxValue();
 					restoredHotbar[slot] = invSlot;
 					if (invSlot >= numLinkedSlots && invSlot < (int)items.size()) {
-						LOGI("[FillingContainer] load: linking hotbar slot %d to inventory slot %d", slot, invSlot);
+						//LOGI("[FillingContainer] load: linking hotbar slot %d to inventory slot %d", slot, invSlot);
 						linkSlot(slot, invSlot, false);
 					} else if (invSlot == -1) {
-						LOGI("[FillingContainer] load: hotbar slot %d is unmapped", slot);
+						//LOGI("[FillingContainer] load: hotbar slot %d is unmapped", slot);
 						linkedSlots[slot].inventorySlot = -1;
 					} else {
-						LOGE("[FillingContainer] load: hotbar slot %d has invalid mapping %d", slot, invSlot);
+						//LOGE("[FillingContainer] load: hotbar slot %d has invalid mapping %d", slot, invSlot);
 						linkedSlots[slot].inventorySlot = -1;
 					}
 				} else {
-					LOGE("Error: Slot %d is selection slot (inventory size: %d) but id/count is %d/%d\n", slot, (int)items.size(), item->id, item->count);
+					//LOGE("Error: Slot %d is selection slot (inventory size: %d) but id/count is %d/%d\n", slot, (int)items.size(), item->id, item->count);
 					linkedSlots[slot].inventorySlot = -1;
 				}
 				delete item;
@@ -281,7 +280,7 @@ void FillingContainer::load( ListTag* inventoryList )
 			}
 			else {
 				if (slot >= MAX_SLOTS) {
-					LOGE("Error: Too large slot ID in Inventory: %d!\n", slot);
+					//LOGE("Error: Too large slot ID in Inventory: %d!\n", slot);
 				}
 				delete item;
 			}
@@ -291,12 +290,12 @@ void FillingContainer::load( ListTag* inventoryList )
 	for (int i = 0; i < numLinkedSlots; ++i) {
 		if (restoredHotbar[i] == -2) {
 			linkedSlots[i].inventorySlot = -1;
-			LOGI("[FillingContainer] load: hotbar slot %d not present in save, set unmapped", i);
+			//LOGI("[FillingContainer] load: hotbar slot %d not present in save, set unmapped", i);
 		}
 	}
 	// Log final hotbar mapping after load
 	for (int i = 0; i < numLinkedSlots; ++i) {
-		LOGI("[FillingContainer] load: final hotbar slot %d mapped to %d", i, linkedSlots[i].inventorySlot);
+		//LOGI("[FillingContainer] load: final hotbar slot %d mapped to %d", i, linkedSlots[i].inventorySlot);
 	}
 	compressLinkedSlotList(0);
 	setContainerChanged();
@@ -306,7 +305,7 @@ int FillingContainer::getContainerSize() const
 {
 	int sz = items.size();
 	if (sz != numTotalSlots) {
-		LOGE("Error@getContainerSize: num items != InventorySize: %d != %d\n", sz, numTotalSlots);
+		//LOGE("Error@getContainerSize: num items != InventorySize: %d != %d\n", sz, numTotalSlots);
 	}
 	return numTotalSlots;
 }
@@ -345,6 +344,7 @@ void FillingContainer::dropSlot( int slot, bool onlyClearContainer, bool randoml
 		if (_isCreative)
 			return;
 		items[slot]->count = 0;
+		//LOGI("[FillingContainer] dropSlot: slot=%d", slot);
 		release(slot); //@itodo:
 		compressLinkedSlotList(slot);
 	}
@@ -493,11 +493,11 @@ int FillingContainer::getFreeSlot() const
 {
 		for (unsigned int i = numLinkedSlots; i < items.size(); i++) {
 			if (items[i] == NULL || items[i]->isNull()) {
-				LOGI("[FillingContainer] getFreeSlot: found free slot %d", i);
+				//LOGI("[FillingContainer] getFreeSlot: found free slot %d", i);
 				return i;
 			}
 		}
-		LOGI("[FillingContainer] getFreeSlot: no free slot found");
+		//LOGI("[FillingContainer] getFreeSlot: no free slot found");
 		return -1;
 }
 
@@ -585,7 +585,7 @@ FillingContainer::ItemList* FillingContainer::getSlotList( int& slot )
 
 // Special for this "selection based" inventory
 bool FillingContainer::linkSlot(int selectionSlot, int inventorySlot, bool propagate) {
-		LOGI("[FillingContainer] linkSlot called: selectionSlot=%d inventorySlot=%d propagate=%d", selectionSlot, inventorySlot, propagate);
+		//LOGI("[FillingContainer] linkSlot called: selectionSlot=%d inventorySlot=%d propagate=%d", selectionSlot, inventorySlot, propagate);
 	if (selectionSlot < 0 || selectionSlot >= numLinkedSlots)
 		return false;
 	if (inventorySlot < numLinkedSlots || inventorySlot >= numTotalSlots)

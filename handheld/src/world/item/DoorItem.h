@@ -15,11 +15,15 @@
 class DoorItem: public Item
 {
 	typedef Item super;
-    const Material* material;
+    Tile* tile;
 public:
-    DoorItem(int id, const Material* material)
+    // `tile` is the specific door tile this item places (Tile::door_wood,
+    // Tile::door_iron, Tile::door_spruce, ...). Previously this was inferred
+    // from a Material* (wood vs metal), which could only ever pick one of two
+    // hardcoded tiles and had no way to support a third wood-type door.
+    DoorItem(int id, Tile* tile)
     :   super(id),
-        material(material)
+        tile(tile)
     {
         maxDamage = 64;
         maxStackSize = 1;
@@ -29,10 +33,6 @@ public:
 		if (face != Facing::UP) return false;
 		y++;
 
-		Tile* tile;
-
-		if (material == Material::wood) tile = Tile::door_wood;
-		else tile = Tile::door_iron;
 		//if (!player->mayUseItemAt(x, y, z, face, instance) || !player->mayUseItemAt(x, y + 1, z, face, instance)) return false;
 		if (!tile->mayPlace(level, x, y, z)) return false;
 

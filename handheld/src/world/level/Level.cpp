@@ -93,10 +93,15 @@ void Level::_init(const std::string& levelName, const LevelSettings& settings, i
     } else {
 		levelData = *preparedData;
         levelData.setLevelName(levelName);
-        // Always let LevelSettings override worldType so a server operator can
-        // switch an existing world or ensure the correct generator is used.
-        if (settings.getWorldType() >= 0)
-            levelData.setWorldType(settings.getWorldType());
+        // Do NOT override worldType from LevelSettings here: worldType is fixed
+        // at world creation and determines which on-disk chunk storage scheme is
+        // used (single bounded region vs. per-region files keyed by chunk coords).
+        // Since ArgumentsSettings::worldType defaults to "Old" whenever
+        // --worldtype isn't passed explicitly, overriding it on every server
+        // start silently flipped existing Infinite worlds back to Old, which
+        // made ExternalFileLevelStorage look in the wrong place for previously
+        // saved chunks. Those "missing" chunks were then freshly regenerated,
+        // which looked like most of the world getting reset on login.
     }
 
 	if (fixedDimension != NULL) {

@@ -109,6 +109,7 @@
 #include "gui/screens/RenameMPLevelScreen.h"
 #include "sound/SoundEngine.h"
 #endif
+#include "BackendClient.h"
 
 static void checkGlError(const char* tag) {
 #ifdef GLDEBUG
@@ -1550,6 +1551,7 @@ void Minecraft::_levelGenerated()
 			}
 			player->setSkinTexture("mob/char.png");
 		}
+		player->setCapeTexture(BackendClient::resolveCapeTexturePath(options.backendUrl, options.capeName));
 	}
 
 	if (levelRenderer != NULL) levelRenderer->setLevel(level);

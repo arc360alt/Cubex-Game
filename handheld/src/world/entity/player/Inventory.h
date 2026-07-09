@@ -55,6 +55,13 @@ public:
 	bool removeItem(const ItemInstance* samePtr);
 	void setCreativeModeEnabled(bool enabled);
 
+	// Used by the creative inventory screen to "give" the player an item that
+	// isn't backed by any existing container slot (its catalog is a standalone
+	// list, not slots inside this Inventory). Places a copy into whichever
+	// real slot backs the currently selected hotbar slot, allocating one if
+	// the hotbar slot isn't linked to anything yet.
+	void giveItemToSelectedSlot(const ItemInstance& item);
+
 	void doDrop(ItemInstance* item, bool randomly);
 	bool stillValid(Player* player);
 	bool add(ItemInstance* item);

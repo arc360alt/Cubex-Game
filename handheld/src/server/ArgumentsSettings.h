@@ -15,6 +15,7 @@ public:
 	int getWorldType();
 	int getDifficulty();
 	std::string getConfigPath();
+	std::string getAccountsDbPath();
 private:
 	void loadConfigFile(const std::string& path);
 	std::string cachePath;
@@ -23,6 +24,7 @@ private:
 	std::string levelDir;
 	std::string serverKey;
 	std::string configPath;
+	std::string accountsDbPath;
 	bool showHelp;
 	int port;
 	int gameType;

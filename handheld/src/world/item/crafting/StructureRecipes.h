@@ -20,6 +20,16 @@ public:
 
             definition('#', Tile::wood));
 
+        // Chest isn't a per-species block, so spruce planks work too - same
+        // reasoning as the other oak/spruce-interchangeable recipes added in
+        // Recipes.cpp (stick, bowl, sign, bookshelf, fenceGate, bed, workBench).
+        r->addShapedRecipe(ItemInstance(Tile::chest), //
+            "###", //
+            "# #", //
+            "###", //
+
+            definition('#', Tile::planksSpruce));
+
         r->addShapedRecipe(ItemInstance(Tile::furnace), //
 			"###", //
 			"# #", //

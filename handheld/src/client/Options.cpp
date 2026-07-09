@@ -56,6 +56,8 @@ void Options::initDefaultValues() {
 	skinPath = "";
 	accountToken = "";
 	accountUsername = "";
+	accountUuid = "";
+	capeName = "";
 	backendUrl = "http://localhost:8080";
 	serverVisible = true;
 
@@ -268,6 +270,8 @@ void Options::update()
 		if (key == "game.skinPath") skinPath = value;
 		if (key == "account.token") accountToken = value;
 		if (key == "account.username") accountUsername = value;
+		if (key == "account.uuid") accountUuid = value;
+		if (key == "account.cape") capeName = value;
 		if (key == "account.backendUrl") backendUrl = value;
 		if (key == OptionStrings::Multiplayer_ServerVisible) readBool(value, serverVisible);
 
@@ -431,6 +435,8 @@ void Options::save()
 	addOptionToSaveOutput(stringVec, "game.skinPath", skinPath);
 	addOptionToSaveOutput(stringVec, "account.token", accountToken);
 	addOptionToSaveOutput(stringVec, "account.username", accountUsername);
+	addOptionToSaveOutput(stringVec, "account.uuid", accountUuid);
+	addOptionToSaveOutput(stringVec, "account.cape", capeName);
 	addOptionToSaveOutput(stringVec, "account.backendUrl", backendUrl);
 	addOptionToSaveOutput(stringVec, OptionStrings::Multiplayer_ServerVisible, serverVisible);
 	addOptionToSaveOutput(stringVec, OptionStrings::Game_DifficultyLevel, difficulty);

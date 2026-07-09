@@ -3,6 +3,8 @@
 
 #include "HumanoidMobRenderer.h"
 
+class CapeModel;
+
 class PlayerRenderer : public HumanoidMobRenderer
 {
 	typedef HumanoidMobRenderer super;
@@ -17,11 +19,13 @@ public:
 	virtual void render(Entity* mob, float x, float y, float z, float rot, float a);
 
 	virtual void renderName(Mob* mob, float x, float y, float z);
+	virtual void additionalRendering(Mob* mob, float a);
 	virtual void onGraphicsReset();
 private:
 	HumanoidModel* playerModel;   // same pointer held by MobRenderer, cast for direct access
 	HumanoidModel* armorParts1;
 	HumanoidModel* armorParts2;
+	CapeModel*     capeModel;
 	std::string    lastSkinName;  // cached so we only query texture dimensions on change
 };
 

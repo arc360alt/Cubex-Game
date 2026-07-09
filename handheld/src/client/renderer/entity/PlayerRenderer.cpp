@@ -5,6 +5,8 @@
 #include "../../../world/item/ArmorItem.h"
 #include "../Textures.h"
 #include "../TextureData.h"
+#include "../../model/CapeModel.h"
+#include "../gles.h"
 
 static const std::string armorFilenames[10] = {
 	"armor/cloth_1.png",	"armor/cloth_2.png",
@@ -18,13 +20,15 @@ PlayerRenderer::PlayerRenderer( HumanoidModel* humanoidModel, float shadow )
 :	super(humanoidModel, shadow),
 	playerModel(humanoidModel),
 	armorParts1(new HumanoidModel(1.0f)),
-	armorParts2(new HumanoidModel(0.5f))
+	armorParts2(new HumanoidModel(0.5f)),
+	capeModel(new CapeModel())
 {
 }
 
 PlayerRenderer::~PlayerRenderer() {
 	delete armorParts1;
 	delete armorParts2;
+	delete capeModel;
 }
 
 void PlayerRenderer::render(Entity* e, float x, float y, float z, float rot, float a) {
@@ -98,9 +102,40 @@ int PlayerRenderer::prepareArmor(Mob* mob, int layer, float a) {
 	return 1;
 }
 
+void PlayerRenderer::additionalRendering(Mob* mob, float a) {
+	super::additionalRendering(mob, a);
+
+	Player* player = (Player*) mob;
+	const std::string& capeTexture = player->getCapeTexture();
+	if (capeTexture.empty())
+		return;
+
+	bindTexture(capeTexture);
+	glEnable2(GL_ALPHA_TEST);
+
+	// ws is the same 0..1 walk-cycle speed MobRenderer uses to scale limb
+	// swing, and walkAnimPos is the walk-cycle phase (advances only while
+	// moving) — so this leans the cape back further the faster you're
+	// walking/sprinting, plus a small per-step flutter, and settles back to
+	// its resting angle as soon as you stop.
+	float ws = mob->walkAnimSpeedO + (mob->walkAnimSpeed - mob->walkAnimSpeedO) * a;
+	if (ws > 1) ws = 1;
+	if (ws < 0) ws = 0;
+	float flutter = Mth::sin(mob->walkAnimPos * 0.6707f) * 4.0f * ws;
+	float wind = (6.0f + ws * 26.0f + flutter) * Mth::DEGRAD;
+
+	// Follow the body's current forward lean too (playerModel->body.xRot, set
+	// by HumanoidModel::setupAnim() earlier this frame — 0.5 rad while
+	// sneaking, 0 otherwise) so the cape bends together with the back instead
+	// of staying at a fixed angle and clipping through a crouched player.
+	capeModel->cape.xRot = playerModel->body.xRot + wind;
+	capeModel->cape.render(1 / 16.0f);
+}
+
 void PlayerRenderer::onGraphicsReset() {
 	super::onGraphicsReset();
 
 	if (armorParts1) armorParts1->onGraphicsReset();
 	if (armorParts2) armorParts2->onGraphicsReset();
+	if (capeModel) capeModel->onGraphicsReset();
 }

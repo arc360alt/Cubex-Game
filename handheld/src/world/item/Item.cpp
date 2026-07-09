@@ -108,6 +108,7 @@ Item* Item::door_wood = NULL;
 //Item* Item::minecart = NULL;
 //Item* Item::saddle = NULL;
 Item* Item::door_iron = NULL;
+Item* Item::door_spruce = NULL;
 //Item* Item::redStone = NULL;
 Item* Item::snowBall = NULL;
 
@@ -239,13 +240,21 @@ void Item::initItems() {
 	Item::painting = (new HangingEntityItem(65, EntityTypes::IdPainting))->setIcon(10, 1)->setCategory(ItemCategory::Decorations)->setDescriptionId("painting");
 	//Item::apple_gold = (new FoodItem(66, 42, false))->setIcon(11, 0)->setCategory(ItemCategory::FoodArmor)->setDescriptionId("appleGold");
 	Item::sign = (new SignItem(67))->setIcon(10, 2)->setCategory(ItemCategory::Decorations)->setDescriptionId("sign");
-	Item::door_wood = (new DoorItem(68, Material::wood))->setIcon(11, 2)->setCategory(ItemCategory::Structures)->setDescriptionId("doorWood");
+	Item::door_wood = (new DoorItem(68, Tile::door_wood))->setIcon(11, 2)->setCategory(ItemCategory::Structures)->setDescriptionId("doorWood");
 	//Item::bucket_empty = (new BucketItem(69, 0))->setIcon(10, 4)->setCategory(ItemCategory::Tools)->setDescriptionId("bucket");
 	//Item::bucket_water = (new BucketItem(70, Tile::water.id))->setIcon(11, 4)->setCategory(ItemCategory::Tools)->setDescriptionId("bucketWater")->setCraftingRemainingItem(Item.bucket_empty);
 	//Item::bucket_lava = (new BucketItem(71, Tile::lava.id))->setIcon(12, 4)->setCategory(ItemCategory::Tools)->setDescriptionId("bucketLava")->setCraftingRemainingItem(Item.bucket_empty);
 	//Item::minecart = (new MinecartItem(72, Minecart.RIDEABLE))->setIcon(7, 8)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("minecart");
 	//Item::saddle = (new SaddleItem(73))->setIcon(8, 6)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("saddle");
-	Item::door_iron = (new DoorItem(74, Material::metal))->setIcon(12, 2)->setCategory(ItemCategory::Structures)->setDescriptionId("doorIron");
+	Item::door_iron = (new DoorItem(74, Tile::door_iron))->setIcon(12, 2)->setCategory(ItemCategory::Structures)->setDescriptionId("doorIron");
+	// @note: icon coords here are cells in gui/items.png, NOT terrain.png -
+	// ItemRenderer::renderGuiItemCorrect binds items.png for any item with
+	// id >= 256 (every Item, since Item(id) stores 256+id), unlike a
+	// Tile-only ItemInstance (id < 256) which takes the 3D block-preview
+	// path instead and never looks at this icon. door_wood/door_iron's
+	// icons at (11,2)/(12,2) are genuine items.png door sprites; (6,6) is a
+	// matching spruce-tinted sprite added there for this door.
+	Item::door_spruce = (new DoorItem(111, Tile::door_spruce))->setIcon(6, 6)->setCategory(ItemCategory::Structures)->setDescriptionId("doorSpruce");
 	//Item::redStone = (new RedStoneItem(75))->setIcon(8, 3)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("redstone");
 	Item::snowBall = (new SnowballItem(76))->setIcon(14, 0)->setCategory(ItemCategory::Decorations)->setDescriptionId("snowball");
 	//Item::boat = (new BoatItem(77))->setIcon(8, 8)->setCategory(ItemCategory::Mechanisms)->setDescriptionId("boat");

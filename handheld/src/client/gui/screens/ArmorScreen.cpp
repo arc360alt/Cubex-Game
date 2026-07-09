@@ -251,9 +251,15 @@ void ArmorScreen::render(int xm, int ym, float a) {
 	glDisable2(GL_ALPHA_TEST);
 
 	if (!cursorItem.isNull()) {
+		// The cursor item must render in front of every slot regardless of
+		// whatever Z offset the slot backgrounds/icons above used - without
+		// this it only depth-tests as "on top" while over empty background,
+		// and gets hidden behind any slot it's dragged over.
+		glDisable2(GL_DEPTH_TEST);
 		Tesselator::instance.beginOverride();
 		ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, &cursorItem, (float)(xm - 8), (float)(ym - 8), true);
 		Tesselator::instance.endOverrideAndDraw();
+		glEnable2(GL_DEPTH_TEST);
 	}
 }
 
@@ -357,10 +363,21 @@ void ArmorScreen::drawSlotItemAt( Tesselator& t, int slot, const ItemInstance* i
 	guiSlot->draw(t, xx, yy);
 
 	if (item && !item->isNull()) {
+		// Blocks with no gui_blocks.png atlas entry (getAtlasPos() < 0 - true
+		// for every tile added after that atlas was authored, e.g. the whole
+		// spruce set) fall back to ItemRenderer's real 3D tile-preview render,
+		// which pushes its own Z translation (glTranslatef2(...,-8) scaled
+		// 10x) independent of guiSlot's NinePatch Z. That puts them deeper
+		// than the slot background, so they lose the depth test and render
+		// behind it, while ordinary mapped icons (a flat quad at Z 0) don't.
+		// Disabling depth test for just this draw makes it always win, which
+		// is what a slot's contents should do regardless of which path drew them.
+		glDisable2(GL_DEPTH_TEST);
 		ItemRenderer::renderGuiItem(minecraft->font, minecraft->textures, item, xx + 2, yy, true);
         glDisable2(GL_TEXTURE_2D);
         ItemRenderer::renderGuiItemDecorations(item, xx + 2, yy + 3);
         glEnable2(GL_TEXTURE_2D);
+		glEnable2(GL_DEPTH_TEST);
 		//minecraft->gui.renderSlotText(item, xx + 3, yy + 3, true, true);
 	} else if (slot >= 0) {
 		// Draw armor slot placeholder icon only for armor slots (slot 0-3)

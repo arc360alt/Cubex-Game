@@ -9,6 +9,7 @@ public:
 	RakNet::RakString clientName;
 	int clientNetworkVersion;
 	int clientNetworkLowestSupportedVersion;
+	RakNet::RakString accountToken;
 
 	LoginPacket()
 	:	clientNetworkVersion(-1),
@@ -16,10 +17,11 @@ public:
 	{
 	}
 
-	LoginPacket(const RakNet::RakString& clientName, int clientVersion)
+	LoginPacket(const RakNet::RakString& clientName, int clientVersion, const RakNet::RakString& accountToken = RakNet::RakString())
 	:	clientName(clientName),
 		clientNetworkVersion(clientVersion),
-		clientNetworkLowestSupportedVersion(clientVersion)
+		clientNetworkLowestSupportedVersion(clientVersion),
+		accountToken(accountToken)
 	{
 	}
 
@@ -29,6 +31,7 @@ public:
 		bitStream->Write(clientName);
 		bitStream->Write(clientNetworkVersion);
 		bitStream->Write(clientNetworkLowestSupportedVersion);
+		bitStream->Write(accountToken);
 	}
 
 	void read(RakNet::BitStream* bitStream)
@@ -39,6 +42,10 @@ public:
 		if (bitStream->GetNumberOfUnreadBits() > 0) {
 			bitStream->Read(clientNetworkVersion);
 			bitStream->Read(clientNetworkLowestSupportedVersion);
+		}
+		// Older clients don't send an account token at all.
+		if (bitStream->GetNumberOfUnreadBits() > 0) {
+			bitStream->Read(accountToken);
 		}
 	}
 

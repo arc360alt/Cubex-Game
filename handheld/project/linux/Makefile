@@ -124,6 +124,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/gui/screens/SelectWorldScreen.cpp \
 	$(SRCDIR)/client/gui/screens/StartMenuScreen.cpp \
 	$(SRCDIR)/client/gui/screens/TextEditScreen.cpp \
+	$(SRCDIR)/client/gui/screens/touch/CreativeInventoryScreen.cpp \
 	$(SRCDIR)/client/gui/screens/touch/TouchIngameBlockSelectionScreen.cpp \
 	$(SRCDIR)/client/gui/screens/touch/TouchJoinGameScreen.cpp \
 	$(SRCDIR)/client/gui/screens/touch/TouchSelectWorldScreen.cpp \

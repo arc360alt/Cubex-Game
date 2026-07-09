@@ -12,6 +12,7 @@
 #include "OreRecipes.h"
 #include "../CoalItem.h"
 #include "../../level/tile/StoneSlabTile.h"
+#include "../../level/tile/TreeTile.h"
 
 /*static*/
 Recipes* Recipes::instance = NULL;
@@ -55,6 +56,14 @@ Recipes::Recipes()
 		"#W#", //
 
 		definition('#', Item::stick, 'W', Tile::wood));
+	// Only one fenceGate tile exists (no per-species result), so unlike the
+	// door/slab/stairs/trapdoor recipes above, spruce planks can just make
+	// this same generic recipe too - real wood-species-agnostic outputs.
+	addShapedRecipe(ItemInstance(Tile::fenceGate, 1), //
+		"#W#", //
+		"#W#", //
+
+		definition('#', Item::stick, 'W', Tile::planksSpruce));
 
 	//addShapedRecipe(ItemInstance(Tile::recordPlayer, 1), //
 	//	"###", //
@@ -76,6 +85,12 @@ Recipes::Recipes()
 		"###", //
 
 		definition('#', Tile::wood, 'X', Item::book));
+	addShapedRecipe(ItemInstance(Tile::bookshelf, 1), //
+		"###", //
+		"XXX", //
+		"###", //
+
+		definition('#', Tile::planksSpruce, 'X', Item::book));
 
 	addShapedRecipe(ItemInstance(Tile::snow, 1), //
 		"##", //
@@ -176,6 +191,12 @@ Recipes::Recipes()
 		" X ", //
 
 		definition('#', Tile::wood, 'X', Item::stick));
+	addShapedRecipe(ItemInstance(Item::sign, 1), //
+		"###", //
+		"###", //
+		" X ", //
+
+		definition('#', Tile::planksSpruce, 'X', Item::stick));
 
 	//addShapedRecipe(ItemInstance(Item::cake, 1), //
 	//	"AAA", //
@@ -191,6 +212,19 @@ Recipes::Recipes()
 
 		definition('#', Item::reeds));
 
+	// Species-specific log -> planks recipes must come BEFORE the generic
+	// "any log" one below: Recipes::getItemFor() returns the first matching
+	// recipe (see the linear scan in that function), and ShapedRecipe::matches()
+	// treats Recipe::ANY_AUX_VALUE (what a plain Tile* ingredient becomes) as
+	// "matches every aux value" — so a generic recipe registered first would
+	// always win and this one would be dead code. Recipes built from an
+	// explicit ItemInstance (rather than a bare Tile*) keep whatever aux value
+	// you give them, so this only matches dark (spruce) logs specifically.
+	addShapedRecipe(ItemInstance(Tile::planksSpruce, 4), //
+		"#", //
+
+		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::DARK_TRUNK)));
+
 	addShapedRecipe(ItemInstance(Tile::wood, 4), //
 		"#", //
 
@@ -201,6 +235,11 @@ Recipes::Recipes()
 		"#", //
 
 		definition('#', Tile::wood));
+	addShapedRecipe(ItemInstance(Item::stick, 4), //
+		"#", //
+		"#", //
+
+		definition('#', Tile::planksSpruce));
 
 	addShapedRecipe(ItemInstance(Tile::torch, 4), //
 		"X", //
@@ -221,6 +260,19 @@ Recipes::Recipes()
 		" # ", //
 
 		definition('#', Tile::wood));
+	addShapedRecipe(ItemInstance(Item::bowl, 4), //
+		"# #", //
+		" # ", //
+
+		definition('#', Tile::planksSpruce));
+
+	// Crafting table: the oak recipe already exists in StructureRecipes.h -
+	// this just adds the spruce-plank alternative next to it.
+	addShapedRecipe(ItemInstance(Tile::workBench, 1), //
+		"##", //
+		"##", //
+
+		definition('#', Tile::planksSpruce));
 
 	//addShapedRecipe(ItemInstance(Item::glassBottle, 3), //
 	//	"# #", //
@@ -320,6 +372,32 @@ Recipes::Recipes()
 		"###", //
 
 		definition('#', Tile::wood));
+
+	// Rest of the spruce set (log -> planks recipe is above, near the oak one).
+	addShapedRecipe(ItemInstance(Tile::stairs_spruce, 4), //
+		"#  ", //
+		"## ", //
+		"###", //
+
+		definition('#', Tile::planksSpruce));
+
+	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::SPRUCE_SLAB), //
+		"###", //
+
+		definition('#', Tile::planksSpruce));
+
+	addShapedRecipe(ItemInstance(Item::door_spruce, 1), //
+		"##", //
+		"##", //
+		"##", //
+
+		definition('#', Tile::planksSpruce));
+
+	addShapedRecipe(ItemInstance(Tile::trapdoor_spruce, 2), //
+		"###", //
+		"###", //
+
+		definition('#', Tile::planksSpruce));
 
 	//addShapedRecipe(ItemInstance(Item::fishingRod, 1), //
 	//	"  #", //
@@ -450,6 +528,10 @@ Recipes::Recipes()
 		"###", //
 		"XXX", //
 		definition('#', Tile::cloth, 'X', Tile::wood));
+	addShapedRecipe(ItemInstance(Item::bed, 1), //
+		"###", //
+		"XXX", //
+		definition('#', Tile::cloth, 'X', Tile::planksSpruce));
 
 	//addShapedRecipe(ItemInstance(Tile::enchantTable, 1), //
 	//	" B ", //

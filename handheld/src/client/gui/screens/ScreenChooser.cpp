@@ -9,6 +9,7 @@
 #include "touch/TouchSelectWorldScreen.h"
 #include "touch/TouchJoinGameScreen.h"
 #include "touch/TouchIngameBlockSelectionScreen.h"
+#include "touch/CreativeInventoryScreen.h"
 
 #include "../../Minecraft.h"
 
@@ -29,7 +30,12 @@ Screen* ScreenChooser::createScreen( ScreenId id )
 		case SCREEN_JOINGAME:	screen = new Touch::JoinGameScreen();	break;
 		case SCREEN_PAUSE:	    screen = new PauseScreen(false); break;
 		case SCREEN_PAUSEPREV:	screen = new PauseScreen(true);	 break;
-		case SCREEN_BLOCKSELECTION:	screen = new Touch::IngameBlockSelectionScreen();	break;
+		case SCREEN_BLOCKSELECTION:
+			// Creative mode gets its own standalone item-picker screen (own
+			// catalog, own render path) instead of the survival "more items"
+			// list - see CreativeInventoryScreen.h for why.
+			screen = _mc->isCreativeMode() ? (Screen*)new Touch::CreativeInventoryScreen() : (Screen*)new Touch::IngameBlockSelectionScreen();
+			break;
 
 		case SCREEN_NONE:
 		default:

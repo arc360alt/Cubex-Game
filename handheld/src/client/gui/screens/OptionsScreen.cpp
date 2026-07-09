@@ -128,6 +128,7 @@ OptionsScreen::OptionsScreen()
   txtNewUsername(NULL),
   _accountStatus(""),
   selectedCategory(0),
+  _capesFetched(false),
   _catScrollY(0),
   _catScrollVelocity(0),
   _catContentHeight(0),
@@ -391,21 +392,58 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 		} else {
 			std::string loggedAs = "Logged in as: " + minecraft->options.accountUsername;
 			minecraft->font->drawShadow(loggedAs, cx, (float)(hH + 34), 0xff88ff88);
+			std::string uuidLine = "UUID: " + (minecraft->options.accountUuid.empty() ? std::string("(fetching...)") : minecraft->options.accountUuid);
+			minecraft->font->drawShadow(uuidLine, cx, (float)(hH + 46), 0xffaaaaaa);
 			minecraft->font->drawShadow("New username:", cx, (float)(hH + 62), 0xffcccccc);
 			if (txtNewUsername) txtNewUsername->render(minecraft, xm, ym);
 			if (btnChangeUsername) btnChangeUsername->render(minecraft, xm, ym);
 			if (btnUploadSkin) btnUploadSkin->render(minecraft, xm, ym);
 			if (btnLogout) btnLogout->render(minecraft, xm, ym);
 
-			// Skin preview — head face to the right of the buttons
-			float px = cx + 160, py = (float)(hH + 34);
+			// Skin preview — head face to the right of the buttons. Pushed down
+			// below the "Logged in as" / "UUID" lines so a full-length uuid
+			// string (which is wide enough to reach this column) doesn't run
+			// underneath the preview box.
+			float px = cx + 160, py = (float)(hH + 58);
 			float psize = 64;
 			fill((int)px - 3, (int)py - 3, (int)(px + psize + 3), (int)(py + psize + 3), 0x88000000);
 			drawSkinPreview(minecraft, minecraft->options.skinPath, px, py, psize);
 			minecraft->font->drawShadow("Skin Preview", px, py + psize + 4, 0xffaaaaaa);
+
+			// Cape picker — a row of small preview boxes below Logout. "None"
+			// is always first, then whatever admin-provided capes the backend
+			// currently has (see backend/capes/).
+			minecraft->font->drawShadow("Cape:", cx, (float)(hH + 188), 0xffcccccc);
+			{
+				int bx, by, bw, bh;
+				getCapeBoxRect(-1, (int)cx, hH, bx, by, bw, bh);
+				bool noneSelected = minecraft->options.capeName.empty();
+				fill(bx - 1, by - 1, bx + bw + 1, by + bh + 1, noneSelected ? 0xffffffff : 0xff555555);
+				fill(bx, by, bx + bw, by + bh, 0xff000000);
+				minecraft->font->drawShadow("x", (float)(bx + bw / 2 - 2), (float)(by + bh / 2 - 4), 0xffaaaaaa);
+
+				for (size_t i = 0; i < _capeChoices.size(); ++i) {
+					getCapeBoxRect((int)i, (int)cx, hH, bx, by, bw, bh);
+					bool selected = (minecraft->options.capeName == _capeChoices[i]);
+					fill(bx - 1, by - 1, bx + bw + 1, by + bh + 1, selected ? 0xffffffff : 0xff555555);
+					fill(bx, by, bx + bw, by + bh, 0xff000000);
+					if (i < _capeTexturePaths.size() && !_capeTexturePaths[i].empty()) {
+						TextureId texId = minecraft->textures->loadTexture(_capeTexturePaths[i], false);
+						if (Textures::isTextureIdValid(texId)) {
+							float tw = 64.0f, th = 32.0f;
+							const TextureData* td = minecraft->textures->getTemporaryTextureData(texId);
+							if (td) { tw = (float)td->w; th = (float)td->h; }
+							// Cape "front" panel only — pixels (1,1)-(11,17) in
+							// the standard vanilla cape UV layout.
+							drawSkinRegion(minecraft->textures, texId, (float)bx, (float)by, (float)bw, (float)bh,
+							               1.0f / tw, 1.0f / th, 11.0f / tw, 17.0f / th);
+						}
+					}
+				}
+			}
 		}
 		if (!_accountStatus.empty())
-			minecraft->font->drawShadow(_accountStatus, cx, (float)(hH + 186), 0xffff8844);
+			minecraft->font->drawShadow(_accountStatus, cx, (float)(hH + 226), 0xffff8844);
 	}
 }
 
@@ -458,14 +496,16 @@ void OptionsScreen::buttonClicked(Button* button) {
 		std::string user = txtUsername ? txtUsername->text : "";
 		std::string pass = txtPassword ? txtPassword->text : "";
 		if (user.empty() || pass.empty()) { _accountStatus = "Enter username and password."; return; }
+		std::string uuid;
 		std::string token;
 		if (button == btnLogin)
-			token = BackendClient::login(minecraft->options.backendUrl, user, pass);
+			token = BackendClient::login(minecraft->options.backendUrl, user, pass, uuid);
 		else
-			token = BackendClient::registerUser(minecraft->options.backendUrl, user, pass);
+			token = BackendClient::registerUser(minecraft->options.backendUrl, user, pass, uuid);
 		if (!token.empty()) {
 			minecraft->options.accountToken = token;
 			minecraft->options.accountUsername = user;
+			minecraft->options.accountUuid = uuid;
 			minecraft->options.username = user;
 			minecraft->options.save();
 			if (minecraft->user) minecraft->user->name = user;
@@ -479,6 +519,7 @@ void OptionsScreen::buttonClicked(Button* button) {
 	if (button == btnLogout) {
 		minecraft->options.accountToken = "";
 		minecraft->options.accountUsername = "";
+		minecraft->options.accountUuid = "";
 		minecraft->options.save();
 		_accountStatus = "Logged out.";
 		selectCategory(4);
@@ -553,11 +594,78 @@ void OptionsScreen::selectCategory( int index ) {
 
     bool onAccount = (selectedCategory == 4);
     bool loggedIn = onAccount && minecraft && !minecraft->options.accountToken.empty();
+    if (loggedIn && minecraft->options.accountUuid.empty()) {
+        // Accounts that logged in before uuids existed won't have one cached
+        // locally yet — contacting the server here (the same call used to
+        // confirm the token is still valid) is enough to get one backfilled.
+        std::string uuid;
+        std::string verifiedName = BackendClient::verifyToken(minecraft->options.backendUrl, minecraft->options.accountToken, uuid);
+        if (!verifiedName.empty() && !uuid.empty()) {
+            minecraft->options.accountUuid = uuid;
+            minecraft->options.save();
+        }
+    }
+    if (loggedIn && !_capesFetched) {
+        // Fetch the catalog once per login, and eagerly cache each cape's
+        // texture now (rather than in render(), which runs every frame and
+        // would otherwise block on the first, uncached download).
+        _capesFetched = true;
+        _capeChoices = BackendClient::listCapes(minecraft->options.backendUrl);
+        _capeTexturePaths.clear();
+        for (size_t i = 0; i < _capeChoices.size(); ++i) {
+            _capeTexturePaths.push_back(BackendClient::resolveCapeTexturePath(minecraft->options.backendUrl, _capeChoices[i]));
+        }
+
+        // Also pull down this account's *actual* current selection from the
+        // server and adopt it locally. options.capeName previously only ever
+        // got set by clicking a cape box on this specific install, so it
+        // never reflected a cape chosen from another device/session — the
+        // picker would show "None" highlighted (and the player would have no
+        // cape) even though the account really has one selected.
+        std::string serverCape = BackendClient::getPlayerCape(minecraft->options.backendUrl, minecraft->options.accountUsername);
+        if (serverCape != minecraft->options.capeName) {
+            minecraft->options.capeName = serverCape;
+            minecraft->options.save();
+            if (minecraft->player) {
+                std::string capePath = BackendClient::resolveCapeTexturePath(minecraft->options.backendUrl, serverCape);
+                minecraft->player->setCapeTexture(capePath);
+            }
+        }
+    }
+    if (!loggedIn) {
+        // Re-fetch next time they log in, in case the catalog changed.
+        _capesFetched = false;
+    }
     if (btnLogin)         btnLogin->visible         = onAccount && !loggedIn;
     if (btnRegister)      btnRegister->visible      = onAccount && !loggedIn;
     if (btnLogout)        btnLogout->visible        = loggedIn;
     if (btnUploadSkin)    btnUploadSkin->visible    = loggedIn;
     if (btnChangeUsername) btnChangeUsername->visible = loggedIn;
+}
+
+// index -1 = "None" box, 0..N-1 = _capeChoices[index]. Shared by render()
+// and mouseReleased() so hit-testing always matches what's drawn.
+void OptionsScreen::getCapeBoxRect(int index, int cx, int hH, int& bx, int& by, int& bw, int& bh) const {
+    bw = bh = 20;
+    const int gap = 4;
+    by = hH + 200;
+    bx = cx + (index + 1) * (bw + gap);
+}
+
+void OptionsScreen::applyCapeSelection(const std::string& capeName) {
+    std::string result;
+    bool ok = BackendClient::setCape(minecraft->options.backendUrl, minecraft->options.accountToken, capeName, result);
+    if (!ok) {
+        _accountStatus = "Failed to set cape.";
+        return;
+    }
+    minecraft->options.capeName = result;
+    minecraft->options.save();
+    if (minecraft->player) {
+        std::string capePath = BackendClient::resolveCapeTexturePath(minecraft->options.backendUrl, result);
+        minecraft->player->setCapeTexture(capePath);
+    }
+    _accountStatus = result.empty() ? "Cape removed." : ("Cape set to: " + result);
 }
 
 void OptionsScreen::keyPressed(int key) {
@@ -734,6 +842,26 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
     if (accountBtnHit(btnLogout))         { buttonClicked(btnLogout);        clickedButton = NULL; return; }
     if (accountBtnHit(btnUploadSkin))     { buttonClicked(btnUploadSkin);    clickedButton = NULL; return; }
     if (accountBtnHit(btnChangeUsername)) { buttonClicked(btnChangeUsername); clickedButton = NULL; return; }
+
+    if (selectedCategory == 4 && buttonNum == 1 && !minecraft->options.accountToken.empty()) {
+        int cW = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
+        int hH = (bHeader != NULL) ? bHeader->height : 26;
+        int cx = cW + 6;
+        int bx, by, bw, bh;
+
+        getCapeBoxRect(-1, cx, hH, bx, by, bw, bh);
+        if (x >= bx && x < bx + bw && y >= by && y < by + bh) {
+            applyCapeSelection("");
+            return;
+        }
+        for (size_t i = 0; i < _capeChoices.size(); ++i) {
+            getCapeBoxRect((int)i, cx, hH, bx, by, bw, bh);
+            if (x >= bx && x < bx + bw && y >= by && y < by + bh) {
+                applyCapeSelection(_capeChoices[i]);
+                return;
+            }
+        }
+    }
 
     if (x >= 0 && x < catW && y >= sidebarTop) {
         int adjustedY = y + (int)_catScrollY;

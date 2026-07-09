@@ -176,6 +176,14 @@ public:
 	std::string skinPath;
 	std::string accountToken;
 	std::string accountUsername;
+	// Stable id for this account (never changes, even across username
+	// renames). Shown on the account page; kept in sync by BackendClient's
+	// login/register/verify calls.
+	std::string accountUuid;
+	// Name of the selected admin-provided cape ("" = none). Mirrors the
+	// account's server-side `cape` field once logged in; applied to the local
+	// player's model via LocalPlayer/OptionsScreen.
+	std::string capeName;
 	std::string backendUrl;
 	std::string getCustomSkinGamePath();
     Options(Minecraft* minecraft, const std::string& workingDirectory)

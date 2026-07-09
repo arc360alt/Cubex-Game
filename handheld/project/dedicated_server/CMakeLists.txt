@@ -163,5 +163,12 @@ set(CompileFiles ../../src/main.cpp
 ../../src/world/level/tile/entity/FurnaceTileEntity.cpp
 ../../src/world/phys/HitResult.cpp)
 message(STATUS "CMAKE_LIBRARY_ARCHITECTURE=${CMAKE_LIBRARY_ARCHITECTURE}")
+
+# Needed by AccountAuth (server/AccountAuth.h) to verify player logins
+# directly against backend/accounts.db.
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(SQLITE3 REQUIRED sqlite3)
+
 add_executable(mcpe_server ${CompileFiles})
-target_link_libraries(mcpe_server raknet ${CMAKE_THREAD_LIBS_INIT})
+target_include_directories(mcpe_server PRIVATE ${SQLITE3_INCLUDE_DIRS})
+target_link_libraries(mcpe_server raknet ${CMAKE_THREAD_LIBS_INIT} ${SQLITE3_LIBRARIES})
