@@ -4,17 +4,69 @@
 //package net.minecraft.world.level.tile;
 
 #include "../material/Material.h"
+#include "../Level.h"
+#include "../LevelSource.h"
 
 #include "Tile.h"
 
 class DirtTile: public Tile
 {
+	typedef Tile super;
 public:
+    // Growth is tracked in this tile's data nibble (0-15, unused by dirt
+    // otherwise). Each step only advances while grass remains adjacent;
+    // losing the neighbor resets progress to 0 ("disrupted").
+    static const int GROW_STEPS = 15;
+    static const int GROW_STEP_DELAY = 80; // ticks between steps (~4s @ 20 tps) -> 15 steps = ~60s max
+
     /*protected*/
 	DirtTile(int id, int tex)
 	:	Tile(id, tex, Material::dirt)
     {
+        setTicking(true);
 	}
+
+    void neighborChanged(Level* level, int x, int y, int z, int type) {
+        if (level->isClientSide) return;
+        if (level->getData(x, y, z) == 0 && hasGrassNeighbor(level, x, y, z)) {
+            level->addToTickNextTick(x, y, z, id, GROW_STEP_DELAY);
+        }
+    }
+
+    void onPlace(Level* level, int x, int y, int z) {
+        if (level->isClientSide) return;
+        if (hasGrassNeighbor(level, x, y, z)) {
+            level->addToTickNextTick(x, y, z, id, GROW_STEP_DELAY);
+        }
+    }
+
+    void tick(Level* level, int x, int y, int z, Random* random) {
+        if (level->isClientSide) return;
+
+        if (!hasGrassNeighbor(level, x, y, z)) {
+            if (level->getData(x, y, z) != 0) level->setData(x, y, z, 0);
+            return;
+        }
+
+        int progress = level->getData(x, y, z);
+        if (progress >= GROW_STEPS) {
+            level->setTile(x, y, z, Tile::grass->id);
+            return;
+        }
+        level->setData(x, y, z, progress + 1);
+        level->addToTickNextTick(x, y, z, id, GROW_STEP_DELAY);
+    }
+
+    static bool hasGrassNeighbor(LevelSource* level, int x, int y, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (dx == 0 && dz == 0) continue;
+                if (level->getTile(x + dx, y, z + dz) == Tile::grass->id) return true;
+                if (level->getTile(x + dx, y + 1, z + dz) == Tile::grass->id) return true;
+            }
+        }
+        return false;
+    }
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_TILE__DirtTile_H__*/
