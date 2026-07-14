@@ -286,6 +286,7 @@ private:
 	void neighborChanged(int x, int y, int z, int type);
 	//void saveAllChunks();
 	void tickTiles();
+	void scanChunkForDirtGrowth(int cx, int cz);
 public:
 	bool instaTick;
 	bool isClientSide;

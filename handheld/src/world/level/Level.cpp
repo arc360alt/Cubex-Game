@@ -17,6 +17,7 @@
 #include "../../util/PerfTimer.h"
 
 #include "tile/LiquidTile.h"
+#include "tile/DirtTile.h"
 
 #include "biome/Biome.h"
 #include "MobSpawner.h"
@@ -265,7 +266,8 @@ void Level::tick() {
 
 /*protected*/
 void Level::tickTiles() {
-    _chunksToPoll.clear();
+    ChunkPosSet oldChunksPolled;
+    oldChunksPolled.swap(_chunksToPoll); // _chunksToPoll is now empty, rebuilt below
 
 	static const int pollChunkOffsets[] = {
 		-1,-4,  0,-4,  1,-4,  -2,-3,  -1,-3,  0,-3,  1,-3,  2,-3,  -3,-2,
@@ -293,6 +295,18 @@ void Level::tickTiles() {
 				_chunksToPoll.insert(ChunkPos(xp, zp));
 		}
     }
+	TIMER_POP();
+
+	// Chunks that just entered the polled radius (freshly generated or freshly
+	// back in range) never went through LevelChunk::setTile, so their dirt
+	// never fired DirtTile::onPlace - seed their grass-growth timers here once,
+	// instead of waiting on the sparse random tile-tick lottery to find them.
+	TIMER_PUSH("dirtGrowthScan");
+	for (ChunkPosSet::iterator it = _chunksToPoll.begin(); it != _chunksToPoll.end(); ++it) {
+		if (oldChunksPolled.find(*it) == oldChunksPolled.end()) {
+			scanChunkForDirtGrowth(it->x, it->z);
+		}
+	}
 	TIMER_POP();
 
     //if (delayUntilNextMoodSound > 0) delayUntilNextMoodSound--;
@@ -345,6 +359,32 @@ void Level::tickTiles() {
 	TIMER_POP();
 	//w.stop();
 	//w.printEvery(30, "ticktiles");
+}
+
+void Level::scanChunkForDirtGrowth(int cx, int cz) {
+	LevelChunk* lc = getChunk(cx, cz);
+	if (lc == NULL) return;
+
+	int xo = cx * 16;
+	int zo = cz * 16;
+	for (int x = 0; x < 16; x++) {
+		for (int z = 0; z < 16; z++) {
+			int height = lc->getHeightmap(x, z);
+			int minY = height - 6;
+			int maxY = height + 2;
+			if (minY < 0) minY = 0;
+			if (maxY >= DEPTH) maxY = DEPTH - 1;
+
+			for (int y = minY; y <= maxY; y++) {
+				if (lc->getTile(x, y, z) != Tile::dirt->id) continue;
+
+				int wx = xo + x, wz = zo + z;
+				if (getData(wx, y, wz) == 0 && DirtTile::hasGrassNeighbor(this, wx, y, wz)) {
+					addToTickNextTick(wx, y, wz, Tile::dirt->id, DirtTile::GROW_STEP_DELAY);
+				}
+			}
+		}
+	}
 }
 
 bool Level::tickPendingTicks(bool force) {
