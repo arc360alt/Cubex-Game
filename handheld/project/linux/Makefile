@@ -103,6 +103,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/gui/Screen.cpp \
 	$(SRCDIR)/client/gui/screens/ScreenChooser.cpp \
 	$(SRCDIR)/client/gui/screens/ArmorScreen.cpp \
+	$(SRCDIR)/client/gui/screens/MapScreen.cpp \
 	$(SRCDIR)/client/gui/screens/ChatScreen.cpp \
 	$(SRCDIR)/client/gui/screens/ConfirmScreen.cpp \
 	$(SRCDIR)/client/gui/screens/ChestScreen.cpp \

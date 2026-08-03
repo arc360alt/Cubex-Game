@@ -92,6 +92,7 @@
 #include "gamemode/CreatorMode.h"
 #ifndef STANDALONE_SERVER
 #include "gui/screens/ArmorScreen.h"
+#include "gui/screens/MapScreen.h"
 #endif
 #include "../world/level/levelgen/synth/ImprovedNoise.h"
 #ifndef STANDALONE_SERVER
@@ -747,7 +748,9 @@ void Minecraft::tickInput() {
 		}
 
 		if (e.action == MouseAction::ACTION_WHEEL) {
-			if (!screen && Keyboard::isKeyDown(Keyboard::KEY_X)) {
+			if (screen && screen->handleScroll(e.dy)) {
+				// consumed by the open screen (e.g. MapScreen zoom)
+			} else if (!screen && Keyboard::isKeyDown(Keyboard::KEY_X)) {
 				// Scroll while zoomed → adjust zoom level
 				gameRenderer->adjustZoom(e.dy);
 			} else {
@@ -851,6 +854,10 @@ void Minecraft::tickInput() {
 				}
 				if (key == Keyboard::KEY_F3) {
 					options.renderDebug = !options.renderDebug;
+				}
+				if (!screen && key == Keyboard::KEY_M && level) {
+					setScreen(new MapScreen());
+					continue;
 				}
 			#endif
 			#if defined(WIN32)

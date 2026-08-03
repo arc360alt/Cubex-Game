@@ -6,6 +6,7 @@
 
 #include "RakMemoryOverride.h"
 #include "Export.h"
+#include <atomic>
 
 //static int allocCount=0;
 //static int deallocCount=0;
@@ -13,17 +14,24 @@
 namespace RakNet
 {
 
+// refCount must be atomic: RakNetSocket smart pointers get copied/destroyed
+// from both the network receive thread (every packet processed copies a
+// RakNetSmartPtr<RakNetSocket>, see ProcessNetworkPacket) and the main
+// thread (e.g. RakPeer::Shutdown's socketList walk). A plain int here lets
+// two threads' AddRef/Release interleave, both see the count hit 0, and
+// both free the same RakNetSocket - a real use-after-free that reliably
+// crashed RakPeer::Shutdown (dereferencing a freed socketList entry).
 class RAK_DLL_EXPORT ReferenceCounter
 {
 private:
-	int refCount;
+	std::atomic<int> refCount;
 
 public:
 	ReferenceCounter() {refCount=0;}
 	~ReferenceCounter() {}
-	void AddRef() {refCount++;}
-	int Release() {return --refCount;}
-	int GetRefCount(void) const {return refCount;}
+	void AddRef() {refCount.fetch_add(1, std::memory_order_relaxed);}
+	int Release() {return refCount.fetch_sub(1, std::memory_order_acq_rel) - 1;}
+	int GetRefCount(void) const {return refCount.load(std::memory_order_relaxed);}
 };
 
 template < typename T > class RAK_DLL_EXPORT RakNetSmartPtr

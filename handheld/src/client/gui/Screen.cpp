@@ -72,6 +72,10 @@ void Screen::updateEvents()
 void Screen::mouseEvent()
 {
 	const MouseAction& e = Mouse::getEvent();
+	if (e.action == MouseAction::ACTION_WHEEL) {
+		handleScroll(e.dy);
+		return;
+	}
 	if (!e.isButton())
 		return;
 

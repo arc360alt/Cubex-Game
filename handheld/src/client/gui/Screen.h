@@ -51,6 +51,11 @@ public:
     virtual void confirmResult(bool result, int id) {}
 	virtual void lostFocus();
 	virtual void toGUICoordinate(int& x, int& y);
+
+	// Mouse wheel while this screen is open. Return true to consume the
+	// event (e.g. MapScreen uses this to zoom) instead of falling through
+	// to the default screen-open scroll behavior (hotbar slot select).
+	virtual bool handleScroll(int dy) { return false; }
 protected:
 	void updateTabButtonSelection();
 	Button* clickedButton;
