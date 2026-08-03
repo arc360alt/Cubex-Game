@@ -4,6 +4,7 @@
 #include "../../util/PerfTimer.h"
 
 #include "LevelRenderer.h"
+#include "Chunk.h"
 #include "ItemInHandRenderer.h"
 #include "culling/AllowAllCuller.h"
 #include "culling/FrustumCuller.h"
@@ -252,9 +253,13 @@ void GameRenderer::renderLevel(float a) {
     Mob* cameraEntity = mc->cameraTargetPlayer;
     LevelRenderer* levelRenderer = mc->levelRenderer;
     ParticleEngine* particleEngine = mc->particleEngine;
-    float xOff = cameraEntity->xOld + (cameraEntity->x - cameraEntity->xOld) * a;
+    // Origin-subtracted for the same reason as LevelRenderer's camera
+    // offset (see the comment on Chunk::originX) - frustum culling below
+    // compares this against chunk AABBs that are also baked relative to
+    // that origin, so both sides need to agree or culling flips unstably.
+    float xOff = cameraEntity->xOld + (cameraEntity->x - cameraEntity->xOld) * a - Chunk::originX;
     float yOff = cameraEntity->yOld + (cameraEntity->y - cameraEntity->yOld) * a;
-    float zOff = cameraEntity->zOld + (cameraEntity->z - cameraEntity->zOld) * a;
+    float zOff = cameraEntity->zOld + (cameraEntity->z - cameraEntity->zOld) * a - Chunk::originZ;
 
     for (int i = 0; i < 2; i++) {
         if (mc->options.anaglyph3d) {
@@ -415,10 +420,19 @@ void GameRenderer::tickFov() {
 }
 
 void GameRenderer::adjustZoom(int scrollDir) {
-	// Each scroll step changes zoom magnitude by 5 degrees, clamped to [10, 65]
+	// Each scroll step changes zoom magnitude by 5 degrees. The upper bound
+	// used to be a flat 65, which (with the default 70-degree FOV option)
+	// only ever let the resulting FOV shrink to 5 degrees - not much zoom.
+	// Instead cap it so the resulting FOV (fieldOfView - zoomBase) can go
+	// down to MIN_ZOOMED_FOV, whatever the user's FOV option is set to -
+	// this both allows much tighter zoom at default settings and stays
+	// safe (never hits a zero/negative FOV, which gluPerspective can't
+	// handle) if the user has FOV set low (options allow down to 30).
+	const float MIN_ZOOMED_FOV = 1.0f;
 	zoomBase -= scrollDir * 5.0f;
+	float maxZoomBase = mc->options.fieldOfView - MIN_ZOOMED_FOV;
 	if (zoomBase < 10.0f) zoomBase = 10.0f;
-	if (zoomBase > 65.0f) zoomBase = 65.0f;
+	if (zoomBase > maxZoomBase) zoomBase = maxZoomBase;
 }
 
 /*private*/

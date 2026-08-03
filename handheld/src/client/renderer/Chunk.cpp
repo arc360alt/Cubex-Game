@@ -10,6 +10,8 @@
 //#include "../../platform/time.h"
 
 /*static*/ int Chunk::updates = 0;
+/*static*/ int Chunk::originX = 0;
+/*static*/ int Chunk::originZ = 0;
 //static Stopwatch swRebuild;
 //int* _layerChunks[3] = {0, 0, 0}; //Chunk::NumLayers];
 //int _layerChunkCount[3] = {0, 0, 0};
@@ -137,7 +139,7 @@ void Chunk::rebuildImpl(Tesselator& tArg, bool cpuOnly)
 							}
 #endif
 							tArg.begin();
-							tArg.offset(0.0f, 0.0f, 0.0f);
+							tArg.offset((float)-originX, 0.0f, (float)-originZ);
 						}
 
 						Tile* tile = Tile::tiles[tileId];
@@ -315,7 +317,12 @@ int Chunk::getAllLists( int displayLists[], int p, int layer )
 
 void Chunk::cull( Culler* culler )
 {
-	visible = culler->isVisible(bb);
+	// bb is baked in absolute world coordinates (see Chunk::setPos below);
+	// the culler's xOff/yOff/zOff are origin-relative (see the comment on
+	// Chunk::originX), so shift into that same frame before testing -
+	// otherwise this compares mismatched coordinate spaces far from spawn.
+	AABB localBB(bb.x0 - originX, bb.y0, bb.z0 - originZ, bb.x1 - originX, bb.y1, bb.z1 - originZ);
+	visible = culler->isVisible(localBB);
 }
 
 void Chunk::renderBB()

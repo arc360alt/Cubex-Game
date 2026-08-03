@@ -62,6 +62,21 @@ public:
 
 	static int updates;// = 0;
 
+	// Chunk mesh vertices are baked as (tileWorldCoord - originX/Z) rather
+	// than raw absolute world coordinates, and the camera translate in
+	// LevelRenderer subtracts the same origin before it ever reaches GL.
+	// Near spawn this origin just sits at (0,0), a no-op. Far out (past
+	// ~1M+ blocks) absolute float32 world coordinates and a per-frame
+	// rotation-composed camera translate on them stop cancelling cleanly -
+	// two independently-rounded huge values get subtracted, and since the
+	// rounding pattern depends on the current view rotation, the result
+	// visibly swims/flashes as the camera turns, even standing still.
+	// Subtracting a shared origin keeps chunk-local and camera-relative
+	// values small (bounded by the origin-shift threshold) so that never
+	// happens. See
+	// LevelRenderer::render()'s origin-shift check for where these move.
+	static int originX, originZ;
+
 	int x, y, z, xs, ys, zs;
 	bool empty[NumLayers];
 	int xm, ym, zm;

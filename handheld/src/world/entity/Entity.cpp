@@ -45,6 +45,7 @@ Entity::Entity( Level* level )
 	horizontalCollision(false), verticalCollision(false),
 
 	x(0), y(0), z(0),
+	xRemainder(0), zRemainder(0),
 	xo(0),yo(0),zo(0),xd(0),yd(0),zd(0),
 	xRot(0), yRot(0),
 	xRotO(0), yRotO(0),
@@ -139,7 +140,13 @@ void Entity::move(float xa, float ya, float za) {
 	//	return;
 
 	if (noPhysics) {
+		// See xRemainder/zRemainder comment in Entity.h.
+		xa += xRemainder;
+		za += zRemainder;
+		float bx0 = bb.x0, bz0 = bb.z0;
         bb.move(xa, ya, za);
+		xRemainder = xa - (bb.x0 - bx0);
+		zRemainder = za - (bb.z0 - bz0);
         x = (bb.x0 + bb.x1) / 2.0f;
         y = bb.y0 + heightOffset - ySlideOffset;
         z = (bb.z0 + bb.z1) / 2.0f;
@@ -150,6 +157,12 @@ void Entity::move(float xa, float ya, float za) {
 
     float xo = x;
     float zo = z;
+
+	// See xRemainder/zRemainder comment in Entity.h - fold in whatever
+	// sub-precision motion earlier ticks couldn't apply, before collision
+	// resolution runs on it.
+	xa += xRemainder;
+	za += zRemainder;
 
 	if (isStuckInWeb) {
 		isStuckInWeb = false;
@@ -278,6 +291,16 @@ void Entity::move(float xa, float ya, float za) {
     }
 
 	TIMER_POP_PUSH("rest");
+
+	// See xRemainder/zRemainder comment in Entity.h. xa/za here are the
+	// final (post-collision, post-footSize-retry) deltas that were meant to
+	// move bb from bbOrg - slide is always true in this codebase (never set
+	// false anywhere), so xa/za are never retroactively zeroed after being
+	// applied, meaning this comparison is safe. Whatever bb.x0/z0 (float32)
+	// couldn't represent of that delta is banked for next tick instead of
+	// silently vanishing.
+	xRemainder = xa - (bb.x0 - bbOrg.x0);
+	zRemainder = za - (bb.z0 - bbOrg.z0);
 
 	x = (bb.x0 + bb.x1) / 2.0f;
     y = bb.y0 + heightOffset - ySlideOffset;

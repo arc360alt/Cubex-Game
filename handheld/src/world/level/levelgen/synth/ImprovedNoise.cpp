@@ -1,5 +1,14 @@
 #include "ImprovedNoise.h"
 #include "../../../../util/Random.h"
+#include <cmath>
+#include <cstdint>
+
+int ImprovedNoise::floatToIntSaturating(float x) {
+	if (std::isnan(x)) return 0;
+	if (x >= 2147483647.0f) return INT32_MAX;
+	if (x <= -2147483648.0f) return INT32_MIN;
+	return (int) x;
+}
 
 ImprovedNoise::ImprovedNoise()
 {
@@ -37,9 +46,9 @@ float ImprovedNoise::noise( float _x, float _y, float _z )
 	float y = _y + yo;
 	float z = _z + zo;
 
-	int xf = (int) x;
-	int yf = (int) y;
-	int zf = (int) z;
+	int xf = floatToIntSaturating(x);
+	int yf = floatToIntSaturating(y);
+	int zf = floatToIntSaturating(z);
 
 	if (x < xf) xf--;
 	if (y < yf) yf--;
@@ -113,7 +122,7 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 		float scale = 1.0f / pow;
 		for (int xx = 0; xx < xSize; xx++) {
 			float x = (_x + xx) * xs + xo;
-			int xf = (int) x;
+			int xf = floatToIntSaturating(x);
 			if (x < xf) xf--;
 			int X = xf & 255;
 			x -= xf;
@@ -121,7 +130,7 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 
 			for (int zz = 0; zz < zSize; zz++) {
 				float z = (_z + zz) * zs + zo;
-				int zf = (int) z;
+				int zf = floatToIntSaturating(z);
 				if (z < zf) zf--;
 				int Z = zf & 255;
 				z -= zf;
@@ -149,7 +158,7 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 
 	for (int xx = 0; xx < xSize; xx++) {
 		float x = (_x + xx) * xs + xo;
-		int xf = (int) x;
+		int xf = floatToIntSaturating(x);
 		if (x < xf) xf--;
 		int X = xf & 255;
 		x -= xf;
@@ -158,7 +167,7 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 
 		for (int zz = 0; zz < zSize; zz++) {
 			float z = (_z + zz) * zs + zo;
-			int zf = (int) z;
+			int zf = floatToIntSaturating(z);
 			if (z < zf) zf--;
 			int Z = zf & 255;
 			z -= zf;
@@ -166,7 +175,7 @@ void ImprovedNoise::add( float* buffer, float _x, float _y, float _z, int xSize,
 
 			for (int yy = 0; yy < ySize; yy++) {
 				float y = (_y + yy) * ys + yo;
-				int yf = (int) y;
+				int yf = floatToIntSaturating(y);
 				if (y < yf) yf--;
 				int Y = yf & 255;
 				y -= yf;

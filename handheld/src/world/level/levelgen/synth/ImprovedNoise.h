@@ -33,6 +33,15 @@ public:
 	float xo, yo, zo;
 private:
 	int p[512];
+
+	// (int)x in Java saturates to INT32_MAX/INT32_MIN (and maps NaN to 0)
+	// instead of invoking undefined behavior like C++'s (int) cast does once
+	// x no longer fits in 32 bits. At extreme world coordinates (~12.55M+
+	// blocks, matching vanilla's "Far Lands" distance) this coordinate does
+	// overflow int32 - saturating here keeps the result finite so the noise
+	// degenerates into vanilla's classic jagged Far Lands terrain instead of
+	// cascading into Infinity/NaN and silently generating nothing at all.
+	static int floatToIntSaturating(float x);
 };
 
 #endif /*NET_MINECRAFT_WORLD_LEVEL_LEVELGEN_SYNTH__ImprovedNoise_H__*/

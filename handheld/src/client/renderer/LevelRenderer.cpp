@@ -533,9 +533,30 @@ int LevelRenderer::render( Mob* player, int layer, float alpha )
 		emptyChunks = 0;
 	}
 
-	float xOff = player->xOld + (player->x - player->xOld) * alpha;
+	if (layer == 0) {
+		// Chunk mesh data and the camera translate below are both baked
+		// relative to Chunk::originX/Z rather than absolute world
+		// coordinates (see the comment on Chunk::originX) - keep that
+		// origin tracking the player so those values stay small. This is a
+		// no-op near spawn (origin just sits at 0,0); it only starts doing
+		// anything once the player wanders far enough that absolute float32
+		// world coordinates would otherwise lose the precision needed for
+		// stable rendering. Done before xOff/yOff/zOff below so this
+		// frame's render already uses the up-to-date origin.
+		const int ORIGIN_SHIFT_THRESHOLD = 512;
+		int px = Mth::floor(player->x);
+		int pz = Mth::floor(player->z);
+		if (Mth::abs(px - Chunk::originX) > ORIGIN_SHIFT_THRESHOLD ||
+			Mth::abs(pz - Chunk::originZ) > ORIGIN_SHIFT_THRESHOLD) {
+			Chunk::originX = (px / ORIGIN_SHIFT_THRESHOLD) * ORIGIN_SHIFT_THRESHOLD;
+			Chunk::originZ = (pz / ORIGIN_SHIFT_THRESHOLD) * ORIGIN_SHIFT_THRESHOLD;
+			for (int i = 0; i < chunksLength; i++) chunks[i]->setDirty();
+		}
+	}
+
+	float xOff = player->xOld + (player->x - player->xOld) * alpha - Chunk::originX;
 	float yOff = player->yOld + (player->y - player->yOld) * alpha;
-	float zOff = player->zOld + (player->z - player->zOld) * alpha;
+	float zOff = player->zOld + (player->z - player->zOld) * alpha - Chunk::originZ;
 
 	if (layer == 0) {
 		static int lastResortTick = -999999;
@@ -601,9 +622,9 @@ int LevelRenderer::render( Mob* player, int layer, float alpha )
 
 					if (ticks % frequency == i % frequency) {
 						Chunk* chunk = sortedChunks[i];
-						float xt = (float) (chunk->x - xOff);
+						float xt = (float) ((chunk->x - Chunk::originX) - xOff);
 						float yt = (float) (chunk->y - yOff);
-						float zt = (float) (chunk->z - zOff);
+						float zt = (float) ((chunk->z - Chunk::originZ) - zOff);
 						float xdd = xt - xo;
 						float ydd = yt - yo;
 						float zdd = zt - zo;
@@ -781,9 +802,12 @@ int LevelRenderer::renderChunks( int from, int to, int layer, float alpha )
 	}
 
 	Mob* player = mc->cameraTargetPlayer;
-	float xOff = player->xOld + (player->x - player->xOld) * alpha;
+	// Subtracting Chunk::originX/Z here (instead of leaving xOff/zOff as the
+	// raw absolute player position) is what keeps this translate small - see
+	// the comment on Chunk::originX for why that matters far from spawn.
+	float xOff = player->xOld + (player->x - player->xOld) * alpha - Chunk::originX;
 	float yOff = player->yOld + (player->y - player->yOld) * alpha;
-	float zOff = player->zOld + (player->z - player->zOld) * alpha;
+	float zOff = player->zOld + (player->z - player->zOld) * alpha - Chunk::originZ;
 
 	//int lists = 0;
 	renderList.clear();
@@ -1165,7 +1189,16 @@ void LevelRenderer::renderEntities(Vec3 cam, Culler* culler, float a) {
 			Entity* entity = entities[i];
 
 				// Expand BB slightly so entities at the frustum edge aren't incorrectly culled
-			if (entity->shouldRender(cam) && culler->isVisible(entity->bb.grow(0.5f, 0.5f, 0.5f)))
+			AABB entityBB = entity->bb.grow(0.5f, 0.5f, 0.5f);
+			// entity->bb is absolute world coords; culler's xOff/yOff/zOff are
+			// origin-relative (see the comment on Chunk::originX) - shift into
+			// the same frame, same as Chunk::cull() does for chunk AABBs.
+			// Without this every entity (including the player's own third-
+			// person avatar) gets wrongly culled as "not visible" once far
+			// enough from spawn that Chunk::originX/Z is nonzero.
+			AABB localEntityBB(entityBB.x0 - Chunk::originX, entityBB.y0, entityBB.z0 - Chunk::originZ,
+				entityBB.x1 - Chunk::originX, entityBB.y1, entityBB.z1 - Chunk::originZ);
+			if (entity->shouldRender(cam) && culler->isVisible(localEntityBB))
 			{
 				if (entity == mc->cameraTargetPlayer && mc->options.thirdPersonView == 0 && mc->cameraTargetPlayer->isPlayer() && !((Player*)mc->cameraTargetPlayer)->isSleeping()) continue;
 				if (entity == mc->cameraTargetPlayer && !mc->options.thirdPersonView)

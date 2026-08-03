@@ -4,6 +4,7 @@
 #include "../Minecraft.h"
 #include "../player/LocalPlayer.h"
 #include "../renderer/Tesselator.h"
+#include "../renderer/gles.h"
 #include "../renderer/TileRenderer.h"
 #include "../renderer/LevelRenderer.h"
 #include "../renderer/GameRenderer.h"
@@ -730,6 +731,16 @@ void Gui::renderDebugInfo() {
 	std::vector<std::string> lines;
 	lines.reserve(8);
 	lines.push_back(std::string("Cubex ") + Common::getGameVersionString());
+
+	// Queried once and cached - glGetString(GL_VERSION) never changes for
+	// the life of the GL context, and this runs every frame renderDebug is on.
+	static std::string glVersionLine;
+	if (glVersionLine.empty()) {
+		const char* glVersion = (const char*) glGetString(GL_VERSION);
+		glVersionLine = std::string("OpenGL: ") + (glVersion ? glVersion : "unknown");
+	}
+	lines.push_back(glVersionLine);
+
 	sprintf(buf, "FPS: %d", minecraft->fps);
 	lines.push_back(buf);
 

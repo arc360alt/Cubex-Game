@@ -151,6 +151,18 @@ protected:
 public:
 	float x, y, z;
 
+	// Sub-ULP horizontal motion accumulator: at extreme world coordinates
+	// (millions of blocks out) float32's precision is spent representing
+	// the huge integer part, so a normal per-tick move delta (~0.1-0.3) can
+	// be smaller than the gap between representable values there and get
+	// silently rounded away by bb.move()'s "x0 += xa" - movement freezes on
+	// whichever axis is huge. This banks whatever fraction of the intended
+	// move a given tick's addition couldn't represent, so it accumulates
+	// across ticks and eventually crosses a representable step instead of
+	// vanishing forever. See Entity::move(). Y is never huge (world height
+	// is always small), so no yRemainder is needed.
+	float xRemainder, zRemainder;
+
 	int xChunk, yChunk, zChunk;
 
 	int entityId;
