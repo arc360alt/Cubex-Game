@@ -40,6 +40,20 @@ void OptionsPane::render(Minecraft* minecraft, int xm, int ym) {
 	_visibleHeight = screenH - y;
 	if (_visibleHeight < 1) return;
 
+	// The xm/ym passed in are scaled twice by OptionsScreen, so read the
+	// pointer directly (same conversion as the drag code in tick()).
+	int mx = Mouse::getX();
+	int my = Mouse::getY();
+	if (minecraft->screen != NULL)
+		minecraft->screen->toGUICoordinate(mx, my);
+	if (!_dragging && mx >= x && mx <= x + width && my >= y && my <= y + _visibleHeight) {
+		float s = Mouse::consumeScrollY();
+		if (s != 0) {
+			_scrollY -= s * Mouse::SCROLL_PIXELS_PER_UNIT;
+			_scrollVelocity = 0;
+		}
+	}
+
 	// Clamp scroll
 	int maxScroll = _contentHeight - _visibleHeight;
 	if (maxScroll < 0) maxScroll = 0;

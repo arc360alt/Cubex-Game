@@ -73,6 +73,9 @@ private:
 	void clearCategoryItems();
 
 	void craftSelectedItem();
+	void updateNeededItems(CItem* item, const ItemPack& ip);
+	void cycleVariant(int direction);
+	void updateVariantButtons();
 	std::vector<ImageButton*> _categoryButtons;
 
 	ItemList _items;
@@ -84,6 +87,9 @@ private:
 	std::vector<Button*> currentCategoryButtons;
 	ImageButton btnClose;
 	CraftButton btnCraft;
+	// Pick which material (e.g. wood species) a recipe uses
+	Touch::TButton btnVariantPrev;
+	Touch::TButton btnVariantNext;
 
 	int craftingSize;
 

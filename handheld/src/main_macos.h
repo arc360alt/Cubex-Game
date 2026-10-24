@@ -11,7 +11,6 @@
  * Dependencies: SDL2, libpng, zlib (all available via Homebrew)
  */
 
-// sdl2-config --cflags adds -I.../SDL2, so headers are accessed as <SDL.h>
 #include <SDL.h>
 #include <unistd.h>
 #include <cstdio>
@@ -76,18 +75,42 @@ static void setGameKey(unsigned char key, bool& tracked, bool pressed) {
 static unsigned char transformKey(SDL_Keycode key) {
     switch (key) {
         case SDLK_LSHIFT:  return Keyboard::KEY_LSHIFT;
-        case SDLK_DOWN:    return 40;
-        case SDLK_UP:      return 38;
+        case SDLK_LCTRL:   return Keyboard::KEY_LCTRL;
+        case SDLK_DOWN:    return Keyboard::KEY_DOWN;
+        case SDLK_UP:      return Keyboard::KEY_UP;
+        case SDLK_LEFT:    return Keyboard::KEY_LEFT;
+        case SDLK_RIGHT:   return Keyboard::KEY_RIGHT;
+        case SDLK_HOME:    return Keyboard::KEY_HOME;
+        case SDLK_END:     return Keyboard::KEY_END;
+        case SDLK_DELETE:  return Keyboard::KEY_DELETE;
         case SDLK_SPACE:   return Keyboard::KEY_SPACE;
         case SDLK_RETURN:  return 13;
+        case SDLK_KP_ENTER:return 13;
         case SDLK_ESCAPE:  return Keyboard::KEY_ESCAPE;
+        case SDLK_BACKSPACE: return Keyboard::KEY_BACKSPACE;
         case SDLK_TAB:     return 250;
+        case SDLK_F1:      return Keyboard::KEY_F1;
+        case SDLK_F2:      return Keyboard::KEY_F2;
+        case SDLK_F3:      return Keyboard::KEY_F3;
+        case SDLK_F4:      return Keyboard::KEY_F4;
+        case SDLK_F5:      return Keyboard::KEY_F5;
+        case SDLK_F6:      return Keyboard::KEY_F6;
+        case SDLK_F7:      return Keyboard::KEY_F7;
+        case SDLK_F8:      return Keyboard::KEY_F8;
+        case SDLK_F9:      return Keyboard::KEY_F9;
+        case SDLK_F10:     return Keyboard::KEY_F10;
+        case SDLK_F11:     return Keyboard::KEY_F11;
+        case SDLK_F12:     return Keyboard::KEY_F12;
         default:           break;
     }
     if (key >= 'a' && key <= 'z') return (unsigned char)(key - 32);
     if (key >= '0' && key <= '9') return (unsigned char)key;
     return 0;
 }
+
+// Trackpads send many small fractional wheel deltas whose integer part is 0;
+// accumulate the precise value and emit whole scroll ticks.
+static float g_wheelAccum = 0.0f;
 
 static int handleEvents(App* app) {
     SDL_Event event;
@@ -107,7 +130,6 @@ static int handleEvents(App* app) {
                 break;
             }
             case SDL_TEXTINPUT: {
-                // Feed printable characters for text screens
                 for (const char* p = event.text.text; *p; ++p)
                     if ((unsigned char)*p >= 32)
                         Keyboard::feedText((unsigned char)*p);
@@ -128,8 +150,15 @@ static int handleEvents(App* app) {
                 break;
             }
             case SDL_MOUSEWHEEL: {
-                // Use last known mouse position to avoid corrupting mouse coords
-                Mouse::feed(3, (event.wheel.y != 0) ? 1 : 0, g_mouseX, g_mouseY, 0, event.wheel.y);
+                float dy = event.wheel.preciseY;
+                Mouse::feedScroll(event.wheel.preciseX, dy);
+                if ((dy > 0) != (g_wheelAccum > 0)) g_wheelAccum = 0.0f; // direction changed
+                g_wheelAccum += dy;
+                int ticks = (int)g_wheelAccum;
+                if (ticks != 0) {
+                    g_wheelAccum -= ticks;
+                    Mouse::feed(3, 1, g_mouseX, g_mouseY, 0, ticks);
+                }
                 break;
             }
             case SDL_MOUSEMOTION: {
@@ -313,7 +342,7 @@ int main(int argc, char** argv) {
     }
 
     // Request a legacy/compatibility OpenGL 2.1 context so the fixed-function
-    // pipeline (glMatrixMode, glVertexPointer, glBegin, etc.) is available.
+    // pipeline (glMatrixMode, glVertexPointer, etc.) is available.
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 1);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_COMPATIBILITY);
@@ -344,7 +373,7 @@ int main(int argc, char** argv) {
         return -3;
     }
 
-    SDL_GL_SetSwapInterval(1); // vsync
+    SDL_GL_SetSwapInterval(1); // default before options are loaded
 
     // glInit() is a no-op on MACOS (skips glewInit)
     glInit();
@@ -368,6 +397,20 @@ int main(int argc, char** argv) {
         }
     }
 
+
+    // Parse command-line arguments for username and skin
+    std::string cliUsername = "";
+    std::string cliSkinPath = "";
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--username" && i + 1 < argc) {
+            cliUsername = argv[++i];
+        } else if (arg == "--skin" && i + 1 < argc) {
+            cliSkinPath = argv[++i];
+        }
+    }
+
+
     MAIN_CLASS* app = new MAIN_CLASS();
 
     // Store saves in ~/Library/Application Support/minecraft/
@@ -387,7 +430,28 @@ int main(int argc, char** argv) {
     static_cast<App*>(app)->init(context);
     app->setSize(g_width, g_height);
 
+    // Override username and skin after options are loaded
+    if (!cliUsername.empty()) {
+        app->options.username = cliUsername;
+        app->options.save();
+    }
+    if (!cliSkinPath.empty()) {
+        app->options.skinPath = cliSkinPath;
+        app->options.save();
+    }
+
+    int currentSwapInterval = 1;
     while (g_running && !app->wantToQuit()) {
+        Uint64 frameStartCounter = SDL_GetPerformanceCounter();
+
+        // Apply runtime graphics pacing settings from options.
+        const int wantedSwapInterval = app->options.enableVsync ? 1 : 0;
+        if (wantedSwapInterval != currentSwapInterval) {
+            SDL_GL_SetSwapInterval(wantedSwapInterval);
+            currentSwapInterval = wantedSwapInterval;
+        }
+
+        Mouse::clearScroll();
         if (handleEvents(app) != 0)
             break;
 
@@ -409,6 +473,24 @@ int main(int argc, char** argv) {
 
         // On macOS with NO_EGL, App::swapBuffers() is a no-op, so we swap here.
         SDL_GL_SwapWindow(g_sdlWindow);
+
+        // Manual FPS cap only when VSync is off.
+        if (!app->options.enableVsync) {
+            int maxFps = app->options.maxFps;
+            if (maxFps < 1) maxFps = 1;
+
+            // 999999 is treated as "unlimited".
+            if (maxFps < 999999) {
+                const double targetMs = 1000.0 / (double)maxFps;
+                Uint64 frameEndCounter = SDL_GetPerformanceCounter();
+                double elapsedMs = (double)(frameEndCounter - frameStartCounter) * 1000.0 / (double)SDL_GetPerformanceFrequency();
+                if (elapsedMs < targetMs) {
+                    Uint32 sleepMs = (Uint32)(targetMs - elapsedMs);
+                    if (sleepMs > 0)
+                        SDL_Delay(sleepMs);
+                }
+            }
+        }
     }
 
     delete app;

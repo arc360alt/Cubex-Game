@@ -204,6 +204,7 @@ void OptionsScreen::init() {
 	textBoxes.push_back(txtUsername);
 
 	txtPassword = new TextBox(12, "");
+	txtPassword->password = true;
 	txtPassword->text = "";
 	txtPassword->w = 120;
 	txtPassword->h = 24;
@@ -247,12 +248,12 @@ void OptionsScreen::init() {
 }
 void OptionsScreen::keyboardNewChar(char inputChar) {
     if (inputChar < 32 || inputChar >= 127) return;
-    if (txtUsername && txtUsername->focused && (int)txtUsername->text.size() < 25)
-        txtUsername->text += inputChar;
-    if (txtPassword && txtPassword->focused && (int)txtPassword->text.size() < 64)
-        txtPassword->text += inputChar;
-    if (txtNewUsername && txtNewUsername->focused && (int)txtNewUsername->text.size() < 25)
-        txtNewUsername->text += inputChar;
+    if (txtUsername && txtUsername->focused)
+        txtUsername->insertChar(inputChar, 25);
+    if (txtPassword && txtPassword->focused)
+        txtPassword->insertChar(inputChar, 64);
+    if (txtNewUsername && txtNewUsername->focused)
+        txtNewUsername->insertChar(inputChar, 25);
 }
 void OptionsScreen::setupPositions() {
 	int headerH = btnClose->height;
@@ -327,6 +328,13 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 	int sidebarTop = headerH + 2;
 	_catVisibleHeight = height - sidebarTop;
 	if (_catVisibleHeight < 1) _catVisibleHeight = 1;
+	if (!_catDragging && xm >= 0 && xm < catW && ym >= sidebarTop) {
+		float s = Mouse::consumeScrollY();
+		if (s != 0) {
+			_catScrollY -= s * Mouse::SCROLL_PIXELS_PER_UNIT;
+			_catScrollVelocity = 0;
+		}
+	}
 	int maxScroll = _catContentHeight - _catVisibleHeight;
 	if (maxScroll < 0) maxScroll = 0;
 	if (_catScrollY < 0) _catScrollY = 0;
@@ -378,15 +386,7 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 			minecraft->font->drawShadow("Username:", cx, (float)(hH + 44), 0xffcccccc);
 			if (txtUsername) txtUsername->render(minecraft, xm, ym);
 			minecraft->font->drawShadow("Password:", cx, (float)(hH + 80), 0xffcccccc);
-			if (txtPassword) {
-				// Draw password field with masked text, matching TextBox::render() style
-				int bx = txtPassword->x, by = txtPassword->y;
-				fill(bx - 1, by - 1, bx + txtPassword->w + 1, by + txtPassword->h + 1, 0xffa0a0a0);
-				fill(bx, by, bx + txtPassword->w, by + txtPassword->h, 0xff000000);
-				std::string masked(txtPassword->text.size(), '*');
-				if (txtPassword->focused) masked += "_";
-				minecraft->font->drawShadow(masked, (float)(bx + 2), (float)(by + (txtPassword->h - 8) / 2), 0xffffffff);
-			}
+			if (txtPassword) txtPassword->render(minecraft, xm, ym);
 			if (btnLogin) btnLogin->render(minecraft, xm, ym);
 			if (btnRegister) btnRegister->render(minecraft, xm, ym);
 		} else {
@@ -670,11 +670,9 @@ void OptionsScreen::applyCapeSelection(const std::string& capeName) {
 
 void OptionsScreen::keyPressed(int key) {
     fflush(stdout);
-    if (key == Keyboard::KEY_BACKSPACE) {
-        if (txtUsername && txtUsername->focused && !txtUsername->text.empty()) { txtUsername->text.pop_back(); return; }
-        if (txtPassword && txtPassword->focused && !txtPassword->text.empty()) { txtPassword->text.pop_back(); return; }
-        if (txtNewUsername && txtNewUsername->focused && !txtNewUsername->text.empty()) { txtNewUsername->text.pop_back(); return; }
-    }
+    if (txtUsername && txtUsername->focused && txtUsername->handleEditKey(key)) return;
+    if (txtPassword && txtPassword->focused && txtPassword->handleEditKey(key)) return;
+    if (txtNewUsername && txtNewUsername->focused && txtNewUsername->handleEditKey(key)) return;
     if (key == Keyboard::KEY_R && selectedCategory == 4) {
         std::string homePath = std::string(getenv("HOME")) + "/.minecraft_skin.png";
         if (access(homePath.c_str(), F_OK) == 0) {

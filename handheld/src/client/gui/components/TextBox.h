@@ -21,6 +21,11 @@ public:
 	virtual bool loseFocus(Minecraft* minecraft);
 
     virtual void render(Minecraft* minecraft, int xm, int ym);
+
+	// Cursor-aware editing. Returns true if the key/char was consumed.
+	bool insertChar(char c, int maxLength);
+	bool handleEditKey(int key);
+	int getCursor() const;
 	
 public:
 	int w, h;
@@ -29,6 +34,8 @@ public:
 	std::string text;
 	int id;
 	bool focused;
+	bool password; // render text as '*'
+	int cursorPos; // -1 = end of text
 };
 
 #endif /*NET_MINECRAFT_CLIENT_GUI_COMPONENTS__TextBox_H__*/

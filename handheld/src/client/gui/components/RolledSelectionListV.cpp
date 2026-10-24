@@ -183,6 +183,15 @@ void RolledSelectionListV::render( int xm, int ym, float a )
 		dragState = NO_DRAG;
 
 		yo = getPos(a);
+
+		if (xm >= x0 && xm <= x1 && ym >= y0 && ym <= y1) {
+			float s = Mouse::consumeScrollY();
+			if (s != 0) {
+				yo -= s * Mouse::SCROLL_PIXELS_PER_UNIT;
+				yoo = yo;
+				yInertia = 0;
+			}
+		}
 	}
 	yDrag = (float)ym;
 

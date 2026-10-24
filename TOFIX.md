@@ -4,3 +4,4 @@
 - Fix the sky flickering when jumping
 - Make passive mobs spawn more frequently to fix hunger problems < Increase more
 - Upgrade the lighting and visuals to make the game look better
+- Make sure the new crafting table features work properly before commiting.

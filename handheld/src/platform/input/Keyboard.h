@@ -76,6 +76,14 @@ public:
 	static const int KEY_LSHIFT = 10;
 	static const int KEY_LCTRL = 17;
 
+	static const int KEY_END = 35;
+	static const int KEY_HOME = 36;
+	static const int KEY_LEFT = 37;
+	static const int KEY_UP = 38;
+	static const int KEY_RIGHT = 39;
+	static const int KEY_DOWN = 40;
+	static const int KEY_DELETE = 46;
+
 	static bool isKeyDown(int keyCode) {
 		return _states[keyCode] == KeyboardAction::KEYDOWN;
 	}

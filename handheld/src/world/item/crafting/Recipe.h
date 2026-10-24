@@ -9,6 +9,7 @@
 #include <vector>
 
 class CraftingContainer;
+class RecipeGroup;
 
 class ItemPack {
 public:
@@ -29,6 +30,17 @@ private:
 	Map items;
 };
 
+
+// One kind of ingredient in a recipe: <count> items, taken from any of
+// <options> (options[0] is the preferred one and is consumed first). Plain
+// ingredients have a single option; group ingredients have several.
+struct RecipeIngredient {
+	RecipeIngredient() : group(NULL), count(0) {}
+
+	std::vector<ItemInstance> options;
+	const RecipeGroup* group; // NULL for a plain ingredient
+	int count;
+};
 
 class Recipe
 {
@@ -52,6 +64,17 @@ public:
 	}
 
 	virtual int getCraftingSize() = 0;
+
+	// Variants: a recipe using a RecipeGroup has one variant per member of
+	// its first group (e.g. one per wood species). The variant chooses the
+	// preferred ingredient, and the output for recipes with a group result.
+	// Recipes without groups have a single variant.
+	virtual int getNumVariants() const { return 1; }
+	virtual ItemInstance getVariantResult(int variant) const { return getResultItem(); }
+	// True if the variant's group ingredient must be that exact member
+	// (group results), false if other members may fill in for it.
+	virtual bool isVariantExclusive() const { return false; }
+	virtual std::vector<RecipeIngredient> getIngredients(int variant);
 private:
 	static bool isAnyAuxValue(int id);
 protected:

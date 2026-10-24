@@ -8,6 +8,7 @@
 #include "../../level/tile/Tile.h"
 
 #include "Recipe.h"
+#include "RecipeGroup.h"
 
 typedef std::vector<std::string> RowList;
 typedef std::vector<Recipe*> RecipeList;
@@ -22,15 +23,19 @@ public:
 	class Type {
 	public:
 		Type(char c, Item* item)
-			:	c(c), item(item), tile(NULL) {}
+			:	c(c), item(item), tile(NULL), group(NULL) {}
 		Type(char c, Tile* tile)
-			:	c(c), item(NULL), tile(tile) {}
+			:	c(c), item(NULL), tile(tile), group(NULL) {}
 		Type(char c, const ItemInstance& itemInstance)
-			:	c(c), item(NULL), tile(NULL), itemInstance(itemInstance) {}
+			:	c(c), item(NULL), tile(NULL), itemInstance(itemInstance), group(NULL) {}
+		// Any member of the group, see RecipeGroup.h
+		Type(char c, const RecipeGroup* group)
+			:	c(c), item(NULL), tile(NULL), group(group) {}
 		bool isItem() { return item != NULL; }
 		Item* item;
 		Tile* tile;
 		ItemInstance itemInstance;
+		const RecipeGroup* group;
 		char c;
 	} ;//Type;
 
@@ -45,6 +50,9 @@ public:
 	void addShapedRecipe(const ItemInstance& result, const std::string& r0, const std::string& r1, const std::string& r2, const TypeList& types);
 
 	void addShapedRecipe(const ItemInstance& result, const RowList& rows, const TypeList& types);
+	// The result is the member of resultGroup matching which member of the
+	// recipe's ingredient group was used, e.g. spruce log -> spruce planks.
+	void addShapedRecipe(const RecipeGroup* resultGroup, int resultCount, const RowList& rows, const TypeList& types);
 
 	void addShapelessRecipe(const ItemInstance& result, const TypeList& types);
 
@@ -54,6 +62,7 @@ private:
 	~Recipes();
 
     ItemInstance getItemFor(CraftingContainer* craftSlots);
+	void addShapedRecipe(const ItemInstance& result, const RecipeGroup* resultGroup, const RowList& rows, const TypeList& types);
 private:
 	static Recipes* instance;
 	RecipeList recipes;

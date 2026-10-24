@@ -89,19 +89,16 @@ void ChatScreen::keyPressed(int eventKey) {
 		return;
 	}
 
-	if (eventKey == Keyboard::KEY_BACKSPACE) {
-		if (textBox && !textBox->text.empty())
-			textBox->text.erase(textBox->text.size() - 1, 1);
+	if (textBox && textBox->handleEditKey(eventKey))
 		return;
-	}
 }
 
 void ChatScreen::keyboardNewChar(char inputChar) {
 	if (!textBox)
 		return;
 
-	if (inputChar >= 32 && inputChar < 127 && (int)textBox->text.size() < SharedConstants::MaxChatLength)
-		textBox->text += inputChar;
+	if (inputChar >= 32 && inputChar < 127)
+		textBox->insertChar(inputChar, SharedConstants::MaxChatLength);
 }
 
 void ChatScreen::mouseClicked(int x, int y, int buttonNum) {

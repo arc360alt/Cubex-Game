@@ -321,13 +321,13 @@ void JoinGameScreen::keyboardNewChar(char inputChar)
 		return;
 
 	if (txtServerAddress && txtServerAddress->focused) {
-		if (inputChar >= 32 && inputChar < 127 && (int)txtServerAddress->text.size() < 64)
-			txtServerAddress->text += inputChar;
+		if (inputChar >= 32 && inputChar < 127)
+			txtServerAddress->insertChar(inputChar, 64);
 		return;
 	}
 	if (txtServerPort && txtServerPort->focused) {
-		if (inputChar >= '0' && inputChar <= '9' && (int)txtServerPort->text.size() < 5)
-			txtServerPort->text += inputChar;
+		if (inputChar >= '0' && inputChar <= '9')
+			txtServerPort->insertChar(inputChar, 5);
 		return;
 	}
 }
@@ -339,16 +339,10 @@ void JoinGameScreen::keyPressed(int key)
 		return;
 	}
 
-	if (key == Keyboard::KEY_BACKSPACE) {
-		if (txtServerAddress && txtServerAddress->focused && !txtServerAddress->text.empty()) {
-			txtServerAddress->text.pop_back();
-			return;
-		}
-		if (txtServerPort && txtServerPort->focused && !txtServerPort->text.empty()) {
-			txtServerPort->text.pop_back();
-			return;
-		}
-	}
+	if (txtServerAddress && txtServerAddress->focused && txtServerAddress->handleEditKey(key))
+		return;
+	if (txtServerPort && txtServerPort->focused && txtServerPort->handleEditKey(key))
+		return;
 	if (key == Keyboard::KEY_RETURN) {
 		buttonClicked(&bAddConnect);
 		return;

@@ -123,6 +123,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/gui/screens/InBedScreen.cpp \
 	$(SRCDIR)/client/gui/screens/IngameBlockSelectionScreen.cpp \
 	$(SRCDIR)/client/gui/screens/JoinGameScreen.cpp \
+	$(SRCDIR)/client/gui/screens/MapScreen.cpp \
 	$(SRCDIR)/client/gui/screens/OptionsScreen.cpp \
 	$(SRCDIR)/client/gui/screens/PauseScreen.cpp \
 	$(SRCDIR)/client/gui/screens/ProgressScreen.cpp \
@@ -134,6 +135,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/gui/screens/touch/TouchJoinGameScreen.cpp \
 	$(SRCDIR)/client/gui/screens/touch/TouchSelectWorldScreen.cpp \
 	$(SRCDIR)/client/gui/screens/touch/TouchStartMenuScreen.cpp \
+	$(SRCDIR)/client/gui/screens/touch/CreativeInventoryScreen.cpp \
 	$(SRCDIR)/client/gui/screens/UploadPhotoScreen.cpp \
 	$(SRCDIR)/client/model/ChickenModel.cpp \
 	$(SRCDIR)/client/model/CowModel.cpp \
@@ -180,6 +182,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/client/renderer/ptexture/DynamicTexture.cpp \
 	$(SRCDIR)/client/renderer/tileentity/ChestRenderer.cpp \
 	$(SRCDIR)/client/renderer/tileentity/SignRenderer.cpp \
+	$(SRCDIR)/client/renderer/tileentity/LanternRenderer.cpp \
 	$(SRCDIR)/client/renderer/tileentity/TileEntityRenderDispatcher.cpp \
 	$(SRCDIR)/client/renderer/tileentity/TileEntityRenderer.cpp \
 	$(SRCDIR)/client/sound/Sound.cpp \
@@ -293,6 +296,8 @@ GAME_SOURCES := \
 	$(SRCDIR)/world/level/tile/FurnaceTile.cpp \
 	$(SRCDIR)/world/level/tile/GrassTile.cpp \
 	$(SRCDIR)/world/level/tile/HeavyTile.cpp \
+	$(SRCDIR)/world/level/tile/HayBaleTile.cpp \
+	$(SRCDIR)/world/level/tile/LanternTile.cpp \
 	$(SRCDIR)/world/level/tile/LightGemTile.cpp \
 	$(SRCDIR)/world/level/tile/MelonTile.cpp \
 	$(SRCDIR)/world/level/tile/Mushroom.cpp \
@@ -305,6 +310,7 @@ GAME_SOURCES := \
 	$(SRCDIR)/world/level/tile/Tile.cpp \
 	$(SRCDIR)/world/level/tile/TrapDoorTile.cpp \
 	$(SRCDIR)/world/level/tile/entity/ChestTileEntity.cpp \
+	$(SRCDIR)/world/level/tile/entity/LanternTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/NetherReactorTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/SignTileEntity.cpp \
 	$(SRCDIR)/world/level/tile/entity/TileEntity.cpp \

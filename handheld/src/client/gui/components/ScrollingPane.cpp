@@ -250,6 +250,13 @@ void ScrollingPane::handleUserInput() {
 	_lx = x;
 	_ly = y;
 
+	if (isInside && !isDown && !tracking) {
+		float sx, sy;
+		Mouse::consumeScroll(sx, sy);
+		if (sx != 0 || sy != 0)
+			scrollBy(sx * -Mouse::SCROLL_PIXELS_PER_UNIT, sy * Mouse::SCROLL_PIXELS_PER_UNIT);
+	}
+
 	if (te_ended > 0 && _wasDown && !isDown)
 		touchesEnded(x, y, t);
 	else if (isDown && !_wasDown && isInside)
@@ -546,6 +553,18 @@ void ScrollingPane::stepThroughDecelerationAnimation(bool noAnimation) {
 	if (!noAnimation) {
 		this->lastFrame = d;
 	}
+}
+
+void ScrollingPane::scrollBy(float xo, float yo) {
+	// Single-axis panes take vertical scroll input along their free axis
+	if (isSet(SF_LockY) && xo == 0) xo = yo;
+	stopDecelerationAnimation();
+	adjustContentSize();
+	minPoint.set((float)(size.w - adjustedContentSize.w), (float)(size.h - adjustedContentSize.h), 0);
+	Vec3 o = _contentOffset;
+	if (isNotSet(SF_LockX)) o.x = Mth::Min(Mth::Max(minPoint.x, o.x + xo), 0.0f);
+	if (isNotSet(SF_LockY)) o.y = Mth::Min(Mth::Max(minPoint.y, o.y + yo), 0.0f);
+	setContentOffset(o);
 }
 
 void ScrollingPane::setContentOffset(float x, float y) {

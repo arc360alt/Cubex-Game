@@ -18,24 +18,7 @@ public:
             "# #", //
             "###", //
 
-            definition('#', Tile::wood));
-
-        // Chest isn't a per-species block, so any plank works too - same
-        // reasoning as the other plank-interchangeable recipes added in
-        // Recipes.cpp (stick, bowl, sign, bookshelf, fenceGate, bed, workBench).
-        r->addShapedRecipe(ItemInstance(Tile::chest), //
-            "###", //
-            "# #", //
-            "###", //
-
-            definition('#', Tile::planksSpruce));
-
-        r->addShapedRecipe(ItemInstance(Tile::chest), //
-            "###", //
-            "# #", //
-            "###", //
-
-            definition('#', Tile::planksBirch));
+            definition('#', RecipeGroup::planks));
 
         r->addShapedRecipe(ItemInstance(Tile::furnace), //
 			"###", //
@@ -48,7 +31,7 @@ public:
             "##", //
             "##", //
 
-            definition('#', Tile::wood));
+            definition('#', RecipeGroup::planks));
 
 		r->addShapedRecipe(ItemInstance(Tile::stonecutterBench), //
 			"##", //

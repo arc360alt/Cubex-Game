@@ -173,6 +173,7 @@ protected:
 	void stopDecelerationAnimation();
 	void stepThroughDecelerationAnimation(bool f);
 
+	void scrollBy(float xo, float yo);
 	void setContentOffset(float x, float y);
 	void setContentOffset(Vec3 a);
 	void setContentOffsetWithAnimation(Vec3 b, bool doScroll);

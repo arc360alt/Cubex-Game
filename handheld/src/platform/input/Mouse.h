@@ -107,8 +107,19 @@ public:
 	static void feed(char actionButtonId, char buttonData, short x, short y, short dx, short dy);
 	static void feedEventOnly(char actionButtonId, char buttonData, short x, short y);
 
+	// Smooth scroll (wheel / trackpad) for scrollable GUI panes, in wheel
+	// units (one mouse-wheel notch = 1). The platform layer accumulates it
+	// each frame and clears it before polling events; the pane under the
+	// cursor takes it with consumeScroll().
+	static const int SCROLL_PIXELS_PER_UNIT = 20;
+	static void feedScroll(float dx, float dy);
+	static void consumeScroll(float& dx, float& dy);
+	static float consumeScrollY();
+	static void clearScroll();
+
 private:
 	static MouseDevice _instance;
+	static float _scrollX, _scrollY;
 };
 
 #endif//MOUSE_H__

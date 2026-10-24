@@ -176,5 +176,28 @@ void Mouse::feedEventOnly(char actionButtonId, char buttonData, short x, short y
 	_instance.feedEventOnly(actionButtonId, buttonData, x, y);
 }
 
+void Mouse::feedScroll(float dx, float dy) {
+	_scrollX += dx;
+	_scrollY += dy;
+}
+
+void Mouse::consumeScroll(float& dx, float& dy) {
+	dx = _scrollX;
+	dy = _scrollY;
+	_scrollX = _scrollY = 0;
+}
+
+float Mouse::consumeScrollY() {
+	float dx, dy;
+	consumeScroll(dx, dy);
+	return dy;
+}
+
+void Mouse::clearScroll() {
+	_scrollX = _scrollY = 0;
+}
+
 MouseDevice Mouse::_instance;
+float Mouse::_scrollX = 0;
+float Mouse::_scrollY = 0;
 

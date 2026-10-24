@@ -132,6 +132,14 @@ void ScrolledSelectionList::render( int xm, int ym, float a )
 		dragState = NO_DRAG;
 
 		yo -= yInertia;
+
+		if (xm >= x0 && xm <= x1 && ym >= y0 && ym <= y1) {
+			float s = Mouse::consumeScrollY();
+			if (s != 0) {
+				yo -= s * Mouse::SCROLL_PIXELS_PER_UNIT;
+				yInertia = 0;
+			}
+		}
 	}
 	yInertia = yInertia * .75f;
 	yDrag = (float)ym;

@@ -160,6 +160,16 @@ void RolledSelectionListH::render( int xm, int ym, float a )
 		dragState = NO_DRAG;
 
 		xo = getPos(a);
+
+		if (ym >= y0 && ym <= y1) {
+			float sx, sy;
+			Mouse::consumeScroll(sx, sy);
+			if (sx != 0 || sy != 0) {
+				xo += (sx - sy) * Mouse::SCROLL_PIXELS_PER_UNIT;
+				xoo = xo;
+				xInertia = 0;
+			}
+		}
 	}
 	xDrag = (float)xm;
 

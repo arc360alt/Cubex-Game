@@ -1,4 +1,5 @@
 #include "PaneCraftingScreen.h"
+#include <algorithm>
 #include "../touch/TouchStartMenuScreen.h"
 #include "../../Screen.h"
 #include "../../components/NinePatch.h"
@@ -62,6 +63,8 @@ PaneCraftingScreen::PaneCraftingScreen(int craftingSize)
 	pane(NULL),
 	btnCraft(1),
 	btnClose(2, ""),
+	btnVariantPrev(3, "<"),
+	btnVariantNext(4, ">"),
 	selectedCategoryButton(NULL),
 	guiBackground(NULL),
 	guiSlotCategory(NULL),
@@ -106,6 +109,8 @@ void PaneCraftingScreen::init() {
 
 	buttons.push_back(&btnCraft);
 	buttons.push_back(&btnClose);
+	buttons.push_back(&btnVariantPrev);
+	buttons.push_back(&btnVariantNext);
 
 	// GUI patches
 	NinePatchFactory builder(minecraft->textures, "gui/spritesheet.png");
@@ -171,6 +176,13 @@ void PaneCraftingScreen::setupPositions() {
 	btnCraft.y = 20;
 	btnCraft.setSize((float)craftW, 62);
 
+	btnVariantPrev.width = btnVariantPrev.height = 18;
+	btnVariantNext.width = btnVariantNext.height = 18;
+	btnVariantPrev.x = btnCraft.x;
+	btnVariantNext.x = btnCraft.x + btnCraft.width - btnVariantNext.width;
+	btnVariantPrev.y = btnVariantNext.y = height - (int)BorderPixels - btnVariantPrev.height;
+	updateVariantButtons();
+
 	btnClose.width = btnClose.height = 19;
 	btnClose.x = width - btnClose.width;
 	btnClose.y = 0;
@@ -204,6 +216,7 @@ void PaneCraftingScreen::render(int xm, int ym, float a) {
 	glEnable2(GL_ALPHA_TEST);
 
 	// Buttons (Left side + crafting)
+	updateVariantButtons();
 	super::render(xm, ym, a);
 
 	// Mid
@@ -267,6 +280,34 @@ void PaneCraftingScreen::render(int xm, int ym, float a) {
 
 		//minecraft->font->drawWordWrap(currentItemDesc, rightBx + 2, (float)btnCraft.y + btnCraft.h + 6, descFrameWidth-4, rgbActive);
 		minecraft->font->drawWordWrap(currentItemDesc, (float)btnCraft.x, (float)(btnCraft.y + btnCraft.height + 6), (float)btnCraft.width, rgbActive);
+
+		// Material selector: the chosen material between the < > buttons
+		if (btnVariantPrev.visible && !currentItem->neededItems.empty()) {
+			ItemInstance material = currentItem->neededItems[0].item;
+			for (unsigned int i = 0; i < currentItem->neededItems.size(); ++i) {
+				if (currentItem->neededItems[i].isVariantMaterial) {
+					material = currentItem->neededItems[i].item;
+					break;
+				}
+			}
+			if (material.getAuxValue() == -1) material.setAuxValue(0);
+
+			const float cx = (float)(btnCraft.x + btnCraft.width / 2);
+			const float iy = (float)btnVariantPrev.y + 1;
+			t.beginOverride();
+			glDisable2(GL_DEPTH_TEST);
+			ItemRenderer::renderGuiItem(NULL, minecraft->textures, &material, cx - 8, iy, 16, 16, true);
+			glEnable2(GL_DEPTH_TEST);
+			t.endOverrideAndDraw();
+
+			std::string name = material.getName();
+			t.beginOverride();
+			t.scale2d(scale, scale);
+			float nameW = (float)minecraft->font->width(name);
+			minecraft->font->drawShadow(name, invScale * cx - nameW / 2, invScale * (iy - 9), rgbActive);
+			t.resetScale();
+			t.endOverrideAndDraw();
+		}
 	}
 	//glDisable2(GL_ALPHA_TEST);
 }
@@ -277,6 +318,9 @@ void PaneCraftingScreen::buttonClicked(Button* button) {
 
 	if (button == &btnClose)
 		minecraft->setScreen(NULL);
+
+	if (button == &btnVariantPrev) cycleVariant(-1);
+	if (button == &btnVariantNext) cycleVariant(1);
 
 	// Did we click a category?
 	if (button->id >= 100 && button->id < 200) {
@@ -307,6 +351,24 @@ static void randomlyFillItemPack(ItemPack* ip, int numItems) {
 	}
 }
 
+// How many of <jtem> the player has, by the recipe aux-value rules
+static int countInPack(const ItemPack& ip, const ItemInstance& jtem) {
+	int has = 0;
+	if (!Recipe::isAnyAuxValue(&jtem) && (jtem.getAuxValue() == Recipe::ANY_AUX_VALUE)) {
+		// If the aux value on the item matters, but the recipe says it doesn't,
+		// use this override (by fetching all items with aux-ids 0-15)
+		ItemInstance aux(jtem);
+		for (int i = 0; i < 16; ++i) {
+			aux.setAuxValue(i);
+			has += ip.getCount(ItemPack::getIdForItemInstance(&aux));
+		}
+	} else {
+		// Else just use the normal aux-value rules
+		has = ip.getCount(ItemPack::getIdForItemInstance(&jtem));
+	}
+	return has;
+}
+
 static bool sortCanCraftPredicate(const CItem* a, const CItem* b) {
 	//if (a->maxBuildCount == 0 && b->maxBuildCount > 0) return false;
 	//if (b->maxBuildCount == 0 && a->maxBuildCount > 0) return true;
@@ -334,40 +396,92 @@ void PaneCraftingScreen::recheckRecipes() {
 
 	for (unsigned int i = 0; i < _items.size(); ++i) {
 		CItem* item = _items[i];
-		item->neededItems.clear();
-		item->setCanCraft(true);
-
 		Recipe* recipe = item->recipe;
-		item->inventoryCount = ip.getCount(ItemPack::getIdForItemInstance(&item->item));
-		//item->maxBuildCount = recipe->getMaxCraftCount(ip);
-		// Override the canCraft thing, since I'm too lazy
-		// to fix the above (commented out) function
-		std::vector<ItemInstance> items = recipe->getItemPack().getItemInstances();
-		for (unsigned int j = 0; j < items.size(); ++j) {
-			ItemInstance& jtem = items[j];
-			int has = 0;
-			if (!Recipe::isAnyAuxValue(&jtem) && (jtem.getAuxValue() == Recipe::ANY_AUX_VALUE)) {
-				// If the aux value on the item matters, but the recipe says it doesn't,
-				// use this override (by fetching all items with aux-ids 0-15)
-				ItemInstance aux(jtem);
-				for (int i = 0; i < 16; ++i) {
-					aux.setAuxValue(i);
-					has += ip.getCount(ItemPack::getIdForItemInstance(&aux));
+
+		// Recipes using an ingredient group (e.g. any planks) have one
+		// variant per group member. Offer the ones the player has material
+		// for, keeping the current choice while it's still possible.
+		item->availableVariants.clear();
+		const int numVariants = recipe->getNumVariants();
+		if (numVariants > 1) {
+			for (int v = 0; v < numVariants; ++v) {
+				std::vector<RecipeIngredient> ings = recipe->getIngredients(v);
+				for (unsigned int j = 0; j < ings.size(); ++j) {
+					if (!ings[j].group) continue;
+					if (countInPack(ip, ings[j].options[0]) > 0)
+						item->availableVariants.push_back(v);
+					break;
 				}
-			} else {
-				// Else just use the normal aux-value rules
-				has = ip.getCount(ItemPack::getIdForItemInstance(&jtem));
 			}
-			CItem::ReqItem req(jtem, has);
-			item->neededItems.push_back(req);
-			item->setCanCraft(item->canCraft() && req.enough());
+			bool keep = std::find(item->availableVariants.begin(), item->availableVariants.end(), item->variant)
+						!= item->availableVariants.end();
+			if (!keep) {
+				item->variant = item->availableVariants.empty()? 0 : item->availableVariants[0];
+				for (unsigned int j = 0; j < item->availableVariants.size(); ++j) {
+					item->variant = item->availableVariants[j];
+					updateNeededItems(item, ip);
+					if (item->canCraft()) break;
+				}
+				if (!item->canCraft() && !item->availableVariants.empty())
+					item->variant = item->availableVariants[0];
+			}
 		}
+		updateNeededItems(item, ip);
 	}
 	w.stop();
 	w.printEvery(1, "> craft ");
 
 	for (unsigned int c = 0; c < _categories.size(); ++c)
 		std::stable_sort(_categories[c].begin(), _categories[c].end(), sortCanCraftPredicate);
+}
+
+void PaneCraftingScreen::updateNeededItems(CItem* item, const ItemPack& ip) {
+	Recipe* recipe = item->recipe;
+	item->neededItems.clear();
+	item->setCanCraft(true);
+
+	item->item = recipe->getVariantResult(item->variant);
+	item->text = item->item.getName();
+	item->inventoryCount = ip.getCount(ItemPack::getIdForItemInstance(&item->item));
+
+	std::vector<RecipeIngredient> ings = recipe->getIngredients(item->variant);
+	bool markedVariant = false;
+	for (unsigned int j = 0; j < ings.size(); ++j) {
+		RecipeIngredient& ing = ings[j];
+		int has = 0;
+		for (unsigned int o = 0; o < ing.options.size(); ++o)
+			has += countInPack(ip, ing.options[o]);
+
+		ItemInstance need = ing.options[0];
+		need.count = ing.count;
+		CItem::ReqItem req(need, has);
+		req.alternatives.assign(ing.options.begin() + 1, ing.options.end());
+		// The first group ingredient is the one the variant chooses
+		if (ing.group && !markedVariant) {
+			req.isVariantMaterial = true;
+			markedVariant = true;
+		}
+		item->neededItems.push_back(req);
+		item->setCanCraft(item->canCraft() && req.enough());
+	}
+}
+
+void PaneCraftingScreen::cycleVariant(int direction) {
+	if (!currentItem) return;
+	std::vector<int>& vars = currentItem->availableVariants;
+	if (vars.size() < 2) return;
+
+	int index = (int)(std::find(vars.begin(), vars.end(), currentItem->variant) - vars.begin());
+	index = (index + direction + (int)vars.size()) % (int)vars.size();
+	currentItem->variant = vars[index];
+	recheckRecipes();
+	currentItemDesc = I18n::getDescriptionString(currentItem->item);
+}
+
+void PaneCraftingScreen::updateVariantButtons() {
+	bool show = currentItem && currentItem->availableVariants.size() >= 2;
+	btnVariantPrev.visible = btnVariantPrev.active = show;
+	btnVariantNext.visible = btnVariantNext.active = show;
 }
 
 void PaneCraftingScreen::addItem( Recipe* recipe )
@@ -429,6 +543,10 @@ void PaneCraftingScreen::keyPressed( int eventKey )
 	if (eventKey == Keyboard::KEY_ESCAPE) {
 		minecraft->setScreen(NULL);
 		//minecraft->grabMouse();
+	} else if (eventKey == Keyboard::KEY_LEFT) {
+		cycleVariant(-1);
+	} else if (eventKey == Keyboard::KEY_RIGHT) {
+		cycleVariant(1);
 	} else {
 		super::keyPressed(eventKey);
 	}
@@ -448,21 +566,30 @@ void PaneCraftingScreen::craftSelectedItem()
 		for (unsigned int i = 0; i < currentItem->neededItems.size(); ++i) {
 			CItem::ReqItem& req = currentItem->neededItems[i];
 
-            // If the recipe allows any aux-value as ingredients, first deplete
-            // aux == 0 from inventory. Since I'm not sure if this always is
-            // correct, let's only do it for ingredient sandstone for now.
-            ItemInstance toRemove = req.item;
+			// Take from the preferred item first, then from the alternatives
+			// (other members of an ingredient group, e.g. other planks)
+			std::vector<ItemInstance> options(1, req.item);
+			options.insert(options.end(), req.alternatives.begin(), req.alternatives.end());
+			int remaining = req.item.count;
 
-            if (Tile::sandStone->id == req.item.id
-             && Recipe::ANY_AUX_VALUE == req.item.getAuxValue()) {
-                 toRemove.setAuxValue(0);
-                 toRemove.count = minecraft->player->inventory->removeResource(toRemove, true);
-                 toRemove.setAuxValue(Recipe::ANY_AUX_VALUE);
-            }
+			for (unsigned int o = 0; o < options.size() && remaining > 0; ++o) {
+				ItemInstance toRemove = options[o];
+				toRemove.count = remaining;
 
-            if (toRemove.count > 0) {
-                minecraft->player->inventory->removeResource(toRemove);
-            }
+				// If the recipe allows any aux-value as ingredients, first deplete
+				// aux == 0 from inventory. Since I'm not sure if this always is
+				// correct, let's only do it for ingredient sandstone for now.
+				if (Tile::sandStone->id == toRemove.id
+				 && Recipe::ANY_AUX_VALUE == toRemove.getAuxValue()) {
+					toRemove.setAuxValue(0);
+					toRemove.count = minecraft->player->inventory->removeResource(toRemove, true);
+					toRemove.setAuxValue(Recipe::ANY_AUX_VALUE);
+				}
+
+				remaining = (toRemove.count > 0)
+					? minecraft->player->inventory->removeResource(toRemove, false)
+					: 0;
+			}
 		}
 		// ... add the new one! (in this order, to fill empty slots better)
 		// if it doesn't fit, throw it on the ground!

@@ -23,6 +23,7 @@ public:
 		//maxBuildCount(0),
 		numBuilt(0),
 		inventoryCount(0),
+		variant(0),
 		_canCraft(false)
 	{
 	}
@@ -30,9 +31,11 @@ public:
 	typedef struct ReqItem {
 		ReqItem() {}
 		ReqItem(const ItemInstance& needItem, int has)
-			:	item(needItem), has(has) {}
-		ItemInstance item;
+			:	item(needItem), has(has), isVariantMaterial(false) {}
+		ItemInstance item; // preferred option; count = amount needed
+		std::vector<ItemInstance> alternatives; // also accepted, used after item
 		int has;
+		bool isVariantMaterial; // the ingredient the selected variant picks
 		bool enough() { return has >= item.count; }
 	} ReqItem;
 
@@ -51,6 +54,8 @@ public:
 	int			numBuilt;
 	int			inventoryCount;
 	std::vector<ReqItem> neededItems;
+	int			variant; // selected recipe variant, see Recipe::getNumVariants()
+	std::vector<int> availableVariants; // variants the player has the material for
 private:
 	bool		_canCraft;
 };

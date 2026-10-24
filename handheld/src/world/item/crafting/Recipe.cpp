@@ -93,6 +93,20 @@ int ItemPack::getCount( int id ) const
 }
 
 
+std::vector<RecipeIngredient> Recipe::getIngredients( int variant )
+{
+	std::vector<RecipeIngredient> out;
+	std::vector<ItemInstance> items = getItemPack().getItemInstances();
+	for (unsigned int i = 0; i < items.size(); ++i) {
+		RecipeIngredient ing;
+		ing.count = items[i].count;
+		items[i].count = 1;
+		ing.options.push_back(items[i]);
+		out.push_back(ing);
+	}
+	return out;
+}
+
 /*static*/
 const int Recipe::SIZE_2X2 = 0;
 const int Recipe::SIZE_3X3 = 1;

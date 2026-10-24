@@ -76,8 +76,13 @@ static unsigned char transformKey(SDL_Keycode key) {
     switch (key) {
         case SDLK_LSHIFT:  return Keyboard::KEY_LSHIFT;
         case SDLK_LCTRL:   return Keyboard::KEY_LCTRL;
-        case SDLK_DOWN:    return 40;
-        case SDLK_UP:      return 38;
+        case SDLK_DOWN:    return Keyboard::KEY_DOWN;
+        case SDLK_UP:      return Keyboard::KEY_UP;
+        case SDLK_LEFT:    return Keyboard::KEY_LEFT;
+        case SDLK_RIGHT:   return Keyboard::KEY_RIGHT;
+        case SDLK_HOME:    return Keyboard::KEY_HOME;
+        case SDLK_END:     return Keyboard::KEY_END;
+        case SDLK_DELETE:  return Keyboard::KEY_DELETE;
         case SDLK_SPACE:   return Keyboard::KEY_SPACE;
         case SDLK_RETURN:  return 13;
         case SDLK_KP_ENTER:return 13;
@@ -102,6 +107,10 @@ static unsigned char transformKey(SDL_Keycode key) {
     if (key >= '0' && key <= '9') return (unsigned char)key;
     return 0;
 }
+
+// Trackpads send many small fractional wheel deltas whose integer part is 0;
+// accumulate the precise value and emit whole scroll ticks.
+static float g_wheelAccum = 0.0f;
 
 static int handleEvents(App* app) {
     SDL_Event event;
@@ -141,7 +150,15 @@ static int handleEvents(App* app) {
                 break;
             }
             case SDL_MOUSEWHEEL: {
-                Mouse::feed(3, (event.wheel.y != 0) ? 1 : 0, g_mouseX, g_mouseY, 0, event.wheel.y);
+                float dy = event.wheel.preciseY;
+                Mouse::feedScroll(event.wheel.preciseX, dy);
+                if ((dy > 0) != (g_wheelAccum > 0)) g_wheelAccum = 0.0f; // direction changed
+                g_wheelAccum += dy;
+                int ticks = (int)g_wheelAccum;
+                if (ticks != 0) {
+                    g_wheelAccum -= ticks;
+                    Mouse::feed(3, 1, g_mouseX, g_mouseY, 0, ticks);
+                }
                 break;
             }
             case SDL_MOUSEMOTION: {
@@ -440,6 +457,7 @@ int main(int argc, char** argv) {
             currentSwapInterval = wantedSwapInterval;
         }
 
+        Mouse::clearScroll();
         if (handleEvents(app) != 0)
             break;
 

@@ -262,11 +262,11 @@ void SimpleChooseLevelScreen::keyboardNewChar(char inputChar)
 	if (step != 0) return;
 
 	if (tbWorldName && tbWorldName->focused) {
-		if (inputChar >= 32 && inputChar < 127 && (int)tbWorldName->text.size() < 64)
-			tbWorldName->text += inputChar;
+		if (inputChar >= 32 && inputChar < 127)
+			tbWorldName->insertChar(inputChar, 64);
 	} else if (tbSeed && tbSeed->focused) {
-		if (inputChar >= 32 && inputChar < 127 && (int)tbSeed->text.size() < 32)
-			tbSeed->text += inputChar;
+		if (inputChar >= 32 && inputChar < 127)
+			tbSeed->insertChar(inputChar, 32);
 	}
 }
 
@@ -286,11 +286,8 @@ void SimpleChooseLevelScreen::keyPressed(int key)
 			}
 			return;
 		}
-		if (key == Keyboard::KEY_BACKSPACE) {
-			if (wFocus && !tbWorldName->text.empty()) tbWorldName->text.pop_back();
-			else if (sFocus && !tbSeed->text.empty()) tbSeed->text.pop_back();
-			return;
-		}
+		if (wFocus && tbWorldName->handleEditKey(key)) return;
+		if (sFocus && tbSeed->handleEditKey(key)) return;
 		if (key == Keyboard::KEY_RETURN) {
 			buttonClicked(bNameContinue);
 			return;

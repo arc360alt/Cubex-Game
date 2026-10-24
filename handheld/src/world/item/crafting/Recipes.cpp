@@ -17,8 +17,57 @@
 /*static*/
 Recipes* Recipes::instance = NULL;
 
+RecipeGroup* RecipeGroup::logs = NULL;
+RecipeGroup* RecipeGroup::planks = NULL;
+RecipeGroup* RecipeGroup::woodStairs = NULL;
+RecipeGroup* RecipeGroup::woodSlabs = NULL;
+RecipeGroup* RecipeGroup::woodDoors = NULL;
+RecipeGroup* RecipeGroup::woodTrapdoors = NULL;
+
+void RecipeGroup::initGroups()
+{
+	// Wood groups: members in species order oak, spruce, birch, so that
+	// they can be paired as ingredient/result (see RecipeGroup.h).
+	logs = (new RecipeGroup("logs"))
+		->add(ItemInstance(Tile::treeTrunk, 1, TreeTile::NORMAL_TRUNK))
+		->add(ItemInstance(Tile::treeTrunk, 1, TreeTile::DARK_TRUNK))
+		->add(ItemInstance(Tile::treeTrunk, 1, TreeTile::BIRCH_TRUNK));
+	planks = (new RecipeGroup("planks"))
+		->add(ItemInstance(Tile::wood, 1, Recipe::ANY_AUX_VALUE))
+		->add(ItemInstance(Tile::planksSpruce, 1, Recipe::ANY_AUX_VALUE))
+		->add(ItemInstance(Tile::planksBirch, 1, Recipe::ANY_AUX_VALUE));
+	woodStairs = (new RecipeGroup("woodStairs"))
+		->add(ItemInstance(Tile::stairs_wood))
+		->add(ItemInstance(Tile::stairs_spruce))
+		->add(ItemInstance(Tile::stairs_birch));
+	woodSlabs = (new RecipeGroup("woodSlabs"))
+		->add(ItemInstance(Tile::stoneSlabHalf, 1, StoneSlabTile::WOOD_SLAB))
+		->add(ItemInstance(Tile::stoneSlabHalf, 1, StoneSlabTile::SPRUCE_SLAB))
+		->add(ItemInstance(Tile::stoneSlabHalf, 1, StoneSlabTile::BIRCH_SLAB));
+	woodDoors = (new RecipeGroup("woodDoors"))
+		->add(ItemInstance(Item::door_wood))
+		->add(ItemInstance(Item::door_spruce))
+		->add(ItemInstance(Item::door_birch));
+	woodTrapdoors = (new RecipeGroup("woodTrapdoors"))
+		->add(ItemInstance(Tile::trapdoor))
+		->add(ItemInstance(Tile::trapdoor_spruce))
+		->add(ItemInstance(Tile::trapdoor_birch));
+}
+
+void RecipeGroup::teardownGroups()
+{
+	delete logs;       logs = NULL;
+	delete planks;     planks = NULL;
+	delete woodStairs; woodStairs = NULL;
+	delete woodSlabs;  woodSlabs = NULL;
+	delete woodDoors;  woodDoors = NULL;
+	delete woodTrapdoors; woodTrapdoors = NULL;
+}
+
 Recipes::Recipes()
 {
+	RecipeGroup::initGroups();
+
 	ToolRecipes::addRecipes(this);
 	WeaponRecipes::addRecipes(this);
 	OreRecipes::addRecipes(this);
@@ -55,20 +104,7 @@ Recipes::Recipes()
 		"#W#", //
 		"#W#", //
 
-		definition('#', Item::stick, 'W', Tile::wood));
-	// Only one fenceGate tile exists (no per-species result), so unlike the
-	// door/slab/stairs/trapdoor recipes above, spruce planks can just make
-	// this same generic recipe too - real wood-species-agnostic outputs.
-	addShapedRecipe(ItemInstance(Tile::fenceGate, 1), //
-		"#W#", //
-		"#W#", //
-
-		definition('#', Item::stick, 'W', Tile::planksSpruce));
-	addShapedRecipe(ItemInstance(Tile::fenceGate, 1), //
-		"#W#", //
-		"#W#", //
-
-		definition('#', Item::stick, 'W', Tile::planksBirch));
+		definition('#', Item::stick, 'W', RecipeGroup::planks));
 
 	//addShapedRecipe(ItemInstance(Tile::recordPlayer, 1), //
 	//	"###", //
@@ -89,19 +125,7 @@ Recipes::Recipes()
 		"XXX", //
 		"###", //
 
-		definition('#', Tile::wood, 'X', Item::book));
-	addShapedRecipe(ItemInstance(Tile::bookshelf, 1), //
-		"###", //
-		"XXX", //
-		"###", //
-
-		definition('#', Tile::planksSpruce, 'X', Item::book));
-	addShapedRecipe(ItemInstance(Tile::bookshelf, 1), //
-		"###", //
-		"XXX", //
-		"###", //
-
-		definition('#', Tile::planksBirch, 'X', Item::book));
+		definition('#', RecipeGroup::planks, 'X', Item::book));
 
 	addShapedRecipe(ItemInstance(Tile::snow, 1), //
 		"##", //
@@ -155,10 +179,10 @@ Recipes::Recipes()
 		"###", //
 		definition('#', Tile::sandStone));
 
-	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::WOOD_SLAB), //
-		"###", //
+	addShapedRecipe(RecipeGroup::woodSlabs, 6, //
+		Shape("###"), //
 
-		definition('#', Tile::wood));
+		definition('#', RecipeGroup::planks));
 
 	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::BRICK_SLAB), //
 		"###", //
@@ -176,18 +200,18 @@ Recipes::Recipes()
 
 		definition('#', Item::stick));
 
-	addShapedRecipe(ItemInstance(Item::door_wood, 1), //
-		"##", //
-		"##", //
-		"##", //
+	addShapedRecipe(RecipeGroup::woodDoors, 1, //
+		Shape("##", //
+			  "##", //
+			  "##"), //
 
-		definition('#', Tile::wood));
+		definition('#', RecipeGroup::planks));
 
-	addShapedRecipe(ItemInstance(Tile::trapdoor, 2), //
-		"###", //
-		"###", //
+	addShapedRecipe(RecipeGroup::woodTrapdoors, 2, //
+		Shape("###", //
+			  "###"), //
 
-		definition('#', Tile::wood));
+		definition('#', RecipeGroup::planks));
 
 	//addShapedRecipe(ItemInstance(Item::door_iron, 1), //
 	//	"##", //
@@ -201,19 +225,7 @@ Recipes::Recipes()
 		"###", //
 		" X ", //
 
-		definition('#', Tile::wood, 'X', Item::stick));
-	addShapedRecipe(ItemInstance(Item::sign, 1), //
-		"###", //
-		"###", //
-		" X ", //
-
-		definition('#', Tile::planksSpruce, 'X', Item::stick));
-	addShapedRecipe(ItemInstance(Item::sign, 1), //
-		"###", //
-		"###", //
-		" X ", //
-
-		definition('#', Tile::planksBirch, 'X', Item::stick));
+		definition('#', RecipeGroup::planks, 'X', Item::stick));
 
 	//addShapedRecipe(ItemInstance(Item::cake, 1), //
 	//	"AAA", //
@@ -229,44 +241,17 @@ Recipes::Recipes()
 
 		definition('#', Item::reeds));
 
-	// Species-specific log -> planks recipes must come BEFORE the generic
-	// "any log" one below: Recipes::getItemFor() returns the first matching
-	// recipe (see the linear scan in that function), and ShapedRecipe::matches()
-	// treats Recipe::ANY_AUX_VALUE (what a plain Tile* ingredient becomes) as
-	// "matches every aux value" — so a generic recipe registered first would
-	// always win and this one would be dead code. Recipes built from an
-	// explicit ItemInstance (rather than a bare Tile*) keep whatever aux value
-	// you give them, so this only matches dark (spruce) logs specifically.
-	addShapedRecipe(ItemInstance(Tile::planksSpruce, 4), //
-		"#", //
+	// One recipe for every species: the planks match the log used.
+	addShapedRecipe(RecipeGroup::planks, 4, //
+		Shape("#"), //
 
-		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::DARK_TRUNK)));
-
-	addShapedRecipe(ItemInstance(Tile::planksBirch, 4), //
-		"#", //
-
-		definition('#', ItemInstance(Tile::treeTrunk, 1, TreeTile::BIRCH_TRUNK)));
-
-	addShapedRecipe(ItemInstance(Tile::wood, 4), //
-		"#", //
-
-		definition('#', Tile::treeTrunk));
+		definition('#', RecipeGroup::logs));
 
 	addShapedRecipe(ItemInstance(Item::stick, 4), //
 		"#", //
 		"#", //
 
-		definition('#', Tile::wood));
-	addShapedRecipe(ItemInstance(Item::stick, 4), //
-		"#", //
-		"#", //
-
-		definition('#', Tile::planksSpruce));
-	addShapedRecipe(ItemInstance(Item::stick, 4), //
-		"#", //
-		"#", //
-
-		definition('#', Tile::planksBirch));
+		definition('#', RecipeGroup::planks));
 
 	addShapedRecipe(ItemInstance(Tile::torch, 4), //
 		"X", //
@@ -292,30 +277,7 @@ Recipes::Recipes()
 		"# #", //
 		" # ", //
 
-		definition('#', Tile::wood));
-	addShapedRecipe(ItemInstance(Item::bowl, 4), //
-		"# #", //
-		" # ", //
-
-		definition('#', Tile::planksSpruce));
-	addShapedRecipe(ItemInstance(Item::bowl, 4), //
-		"# #", //
-		" # ", //
-
-		definition('#', Tile::planksBirch));
-
-	// Crafting table: the oak recipe already exists in StructureRecipes.h -
-	// this just adds the spruce/birch-plank alternatives next to it.
-	addShapedRecipe(ItemInstance(Tile::workBench, 1), //
-		"##", //
-		"##", //
-
-		definition('#', Tile::planksSpruce));
-	addShapedRecipe(ItemInstance(Tile::workBench, 1), //
-		"##", //
-		"##", //
-
-		definition('#', Tile::planksBirch));
+		definition('#', RecipeGroup::planks));
 
 	//addShapedRecipe(ItemInstance(Item::glassBottle, 3), //
 	//	"# #", //
@@ -409,64 +371,12 @@ Recipes::Recipes()
 
 		definition('#', Item::wheat));
 
-	addShapedRecipe(ItemInstance(Tile::stairs_wood, 4), //
-		"#  ", //
-		"## ", //
-		"###", //
+	addShapedRecipe(RecipeGroup::woodStairs, 4, //
+		Shape("#  ", //
+			  "## ", //
+			  "###"), //
 
-		definition('#', Tile::wood));
-
-	// Rest of the spruce set (log -> planks recipe is above, near the oak one).
-	addShapedRecipe(ItemInstance(Tile::stairs_spruce, 4), //
-		"#  ", //
-		"## ", //
-		"###", //
-
-		definition('#', Tile::planksSpruce));
-
-	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::SPRUCE_SLAB), //
-		"###", //
-
-		definition('#', Tile::planksSpruce));
-
-	addShapedRecipe(ItemInstance(Item::door_spruce, 1), //
-		"##", //
-		"##", //
-		"##", //
-
-		definition('#', Tile::planksSpruce));
-
-	addShapedRecipe(ItemInstance(Tile::trapdoor_spruce, 2), //
-		"###", //
-		"###", //
-
-		definition('#', Tile::planksSpruce));
-
-	// Birch set (log -> planks recipe is above, near the oak/spruce ones).
-	addShapedRecipe(ItemInstance(Tile::stairs_birch, 4), //
-		"#  ", //
-		"## ", //
-		"###", //
-
-		definition('#', Tile::planksBirch));
-
-	addShapedRecipe(ItemInstance(Tile::stoneSlabHalf, 6, StoneSlabTile::BIRCH_SLAB), //
-		"###", //
-
-		definition('#', Tile::planksBirch));
-
-	addShapedRecipe(ItemInstance(Item::door_birch, 1), //
-		"##", //
-		"##", //
-		"##", //
-
-		definition('#', Tile::planksBirch));
-
-	addShapedRecipe(ItemInstance(Tile::trapdoor_birch, 2), //
-		"###", //
-		"###", //
-
-		definition('#', Tile::planksBirch));
+		definition('#', RecipeGroup::planks));
 
 	//addShapedRecipe(ItemInstance(Item::fishingRod, 1), //
 	//	"  #", //
@@ -596,15 +506,7 @@ Recipes::Recipes()
 	addShapedRecipe(ItemInstance(Item::bed, 1), //
 		"###", //
 		"XXX", //
-		definition('#', Tile::cloth, 'X', Tile::wood));
-	addShapedRecipe(ItemInstance(Item::bed, 1), //
-		"###", //
-		"XXX", //
-		definition('#', Tile::cloth, 'X', Tile::planksSpruce));
-	addShapedRecipe(ItemInstance(Item::bed, 1), //
-		"###", //
-		"XXX", //
-		definition('#', Tile::cloth, 'X', Tile::planksBirch));
+		definition('#', Tile::cloth, 'X', RecipeGroup::planks));
 
 	//addShapedRecipe(ItemInstance(Tile::enchantTable, 1), //
 	//	" B ", //
@@ -627,6 +529,23 @@ Recipes::Recipes()
 
 void Recipes::addShapedRecipe( const ItemInstance& result, const RowList& rows, const TypeList& types )
 {
+	addShapedRecipe(result, NULL, rows, types);
+}
+
+void Recipes::addShapedRecipe( const RecipeGroup* resultGroup, int resultCount, const RowList& rows, const TypeList& types )
+{
+	if (!resultGroup || resultGroup->size() == 0) {
+		LOGE("Recipes::addShapedRecipe: empty result group!\n");
+		return;
+	}
+	ItemInstance result = resultGroup->get(0);
+	result.count = resultCount;
+	if (result.getAuxValue() == Recipe::ANY_AUX_VALUE) result.setAuxValue(0);
+	addShapedRecipe(result, resultGroup, rows, types);
+}
+
+void Recipes::addShapedRecipe( const ItemInstance& result, const RecipeGroup* resultGroup, const RowList& rows, const TypeList& types )
+{
 	if (rows.empty()) {
 		LOGE("Recipes::addShapedRecipe: adding an empty recipe!\n");
 		return;
@@ -640,13 +559,20 @@ void Recipes::addShapedRecipe( const ItemInstance& result, const RowList& rows, 
 		map += rows[i];
 
 	typedef std::map<char, ItemInstance> Map;
+	typedef std::map<char, const RecipeGroup*> GroupMap;
 	Map mappings;
+	GroupMap groupMappings;
 	for (unsigned int i = 0; i < types.size(); i++) {
 		const Type& type = types[i];
 		char from = type.c;
 		ItemInstance to;
 
-		if (type.item) {
+		if (type.group) {
+			// The slot holds the first member, so code that only knows about
+			// plain ingredients (e.g. ItemPack) still sees something sensible
+			to = type.group->get(0);
+			groupMappings.insert(std::make_pair(from, type.group));
+		} else if (type.item) {
 			to = ItemInstance(type.item);
 		} else if (type.tile) {
 			to = ItemInstance(type.tile, 1, Recipe::ANY_AUX_VALUE);
@@ -658,16 +584,24 @@ void Recipes::addShapedRecipe( const ItemInstance& result, const RowList& rows, 
 	}
 
 	ItemInstance* ids = new ItemInstance[width * height];
+	const RecipeGroup** groups = groupMappings.empty()? NULL : new const RecipeGroup*[width * height];
 
 	for (int i = 0; i < width * height; i++) {
 		char ch = map[i];
 		Map::iterator it = mappings.find(ch);
 		if (it != mappings.end())
 			ids[i] = it->second;
+		if (groups) {
+			GroupMap::iterator gt = groupMappings.find(ch);
+			groups[i] = (gt != groupMappings.end())? gt->second : NULL;
+		}
 	}
 
-	// <ids> are deleted in ShapedRecipe
-	recipes.push_back(new ShapedRecipe(width, height, ids, result));
+	if (resultGroup && (groupMappings.empty() || groupMappings.begin()->second->size() != resultGroup->size()))
+		LOGE("Recipes::addShapedRecipe: result group %s doesn't pair with the ingredient group!\n", resultGroup->name.c_str());
+
+	// <ids> and <groups> are deleted in ShapedRecipe
+	recipes.push_back(new ShapedRecipe(width, height, ids, result, groups, resultGroup));
 }
 
 void Recipes::addShapedRecipe( const ItemInstance& result, const std::string& r0, const TypeList& types) {
@@ -794,4 +728,5 @@ Recipes::~Recipes()
 {
 	for (unsigned int i = 0; i < recipes.size(); ++i)
 		delete recipes[i];
+	RecipeGroup::teardownGroups();
 }
