@@ -57,6 +57,25 @@ public:
         png_set_read_fn(pngPtr, (void*)&source, png_macos_readFile);
         png_read_info(pngPtr, infoPtr);
 
+        // Normalize any PNG format (palette, grayscale, tRNS, etc.) to RGBA.
+        // The renderer assumes 4 bytes per pixel for every loaded texture.
+        int colorType = png_get_color_type(pngPtr, infoPtr);
+        int bitDepth = png_get_bit_depth(pngPtr, infoPtr);
+        if (bitDepth == 16)
+            png_set_strip_16(pngPtr);
+        if (colorType == PNG_COLOR_TYPE_PALETTE)
+            png_set_palette_to_rgb(pngPtr);
+        if (colorType == PNG_COLOR_TYPE_GRAY && bitDepth < 8)
+            png_set_expand_gray_1_2_4_to_8(pngPtr);
+        if (png_get_valid(pngPtr, infoPtr, PNG_INFO_tRNS))
+            png_set_tRNS_to_alpha(pngPtr);
+        if (colorType == PNG_COLOR_TYPE_GRAY || colorType == PNG_COLOR_TYPE_GRAY_ALPHA)
+            png_set_gray_to_rgb(pngPtr);
+        if (!(colorType & PNG_COLOR_MASK_ALPHA))
+            png_set_filler(pngPtr, 0xFF, PNG_FILLER_AFTER);
+
+        png_read_update_info(pngPtr, infoPtr);
+
         out.w = png_get_image_width(pngPtr, infoPtr);
         out.h = png_get_image_height(pngPtr, infoPtr);
 

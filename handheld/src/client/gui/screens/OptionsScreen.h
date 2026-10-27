@@ -54,6 +54,16 @@ private:
 	void getCapeBoxRect(int index, int cx, int hH, int& bx, int& by, int& bw, int& bh) const;
 	void applyCapeSelection(const std::string& capeName);
 
+	// Account tab scroll state (its widgets are laid out below the header
+	// and can run past the bottom of the screen)
+	float _accountScrollY;
+	bool _accountDragging;
+	bool _accountDragMoved;
+	int _accountDragStartY;
+	float _accountDragStartScroll;
+	int getAccountStatusY(int cx, int hH) const;
+	int clampAccountScroll(); // returns the max scroll
+
 	// Sidebar scroll state
 	float _catScrollY;
 	float _catScrollVelocity;

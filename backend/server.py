@@ -33,7 +33,6 @@ app = Flask(__name__)
 # Database helpers
 # ---------------------------------------------------------------------------
 USERNAME_RE = re.compile(r"^[A-Za-z0-9_]{1,25}$")
-CAPE_NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,50}$")
 MAX_SKIN_BYTES = 8 * 1024 * 1024  # 8 MB
 
 
@@ -266,11 +265,12 @@ def list_capes():
 # ---------------------------------------------------------------------------
 @app.route("/api/capes/<name>", methods=["GET"])
 def get_cape_image(name):
-    if not CAPE_NAME_RE.match(name):
-        return jsonify({"error": "invalid cape name"}), 400
-    cape_path = os.path.join(CAPES_DIR, f"{name}.png")
-    if not os.path.isfile(cape_path):
+    # Only serve names from the folder listing itself: cape files keep their
+    # original names (spaces, long ids), and this also rules out any path
+    # tricks since the name must exactly match an existing file.
+    if name not in available_capes():
         return jsonify({"error": "no such cape"}), 404
+    cape_path = os.path.join(CAPES_DIR, f"{name}.png")
     return send_file(cape_path, mimetype="image/png")
 
 

@@ -8,11 +8,17 @@
 // (with its own, separate-from-skin texture) after the body/armor layers —
 // see PlayerRenderer::additionalRendering().
 //
-// Uses the standard vanilla cape UV layout on a 64x32 texture: a 1px top strip,
-// a 1px bottom strip, then 1px-wide left/right edges flanking a 10x16 front
-// and back. That's exactly what a (w=10,h=16,d=1) box unfolds to under this
-// engine's box-UV scheme starting at (0,0), so any cape texture authored in
-// that well-known format (see backend/capes/README.md) just drops in.
+// Uses the standard vanilla (Java Edition) cape texture on a 64x32 image: the
+// cape is the 22x17 region at the top left - a 1px top/bottom strip, then
+// 1px-wide left/right edges flanking the 10x16 outside (at 1,1) and inside
+// (at 12,1). That's exactly what a (w=10,h=16,d=1) box unfolds to under this
+// engine's box-UV scheme starting at (0,0), so real cape files drop straight
+// in (see backend/capes/README.md). The elytra on the right is unused.
+//
+// The box's "front" face (the cape's outside) points to -z, which is towards
+// the player's back, so like vanilla the cape is turned around 180 degrees
+// (yRot = PI). Because of that, xRot is applied in the turned-around frame:
+// a *negative* xRot swings the cape out behind the player.
 class CapeModel: public Model {
 public:
 	ModelPart cape;
@@ -23,12 +29,13 @@ public:
 		cape.setModel(this);
 		cape.texOffs(0, 0);
 		// Hangs from the neck (y=0, same reference the body/head use) down to
-		// about mid-thigh, sitting just behind the body's back face (z=2).
-		cape.addBox(-5, 0, 2.0f, 10, 16, 1, 0.0f);
+		// about mid-thigh, sitting just behind the body's back face (z=2 once
+		// turned around).
+		cape.addBox(-5, 0, -3.0f, 10, 16, 1, 0.0f);
 		cape.setPos(0, 0, 0);
-		// Slight backward lean, hinged at the top (attachment point), purely
-		// for looks — no walk-cycle swing animation in this first pass.
-		cape.xRot = 6.0f * Mth::DEGRAD;
+		cape.yRot = Mth::PI;
+		// Slight backward lean, hinged at the top (attachment point)
+		cape.xRot = -6.0f * Mth::DEGRAD;
 	}
 
 	void onGraphicsReset() {

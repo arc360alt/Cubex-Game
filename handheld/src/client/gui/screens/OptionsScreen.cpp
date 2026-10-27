@@ -136,7 +136,12 @@ OptionsScreen::OptionsScreen()
   _catDragging(false),
   _catDragStartY(0),
   _catDragStartScroll(0),
-  _catLastDragY(0) {
+  _catLastDragY(0),
+  _accountScrollY(0),
+  _accountDragging(false),
+  _accountDragMoved(false),
+  _accountDragStartY(0),
+  _accountDragStartScroll(0) {
 }
 
 OptionsScreen::~OptionsScreen() {
@@ -370,6 +375,19 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 
 	glDisable2(GL_SCISSOR_TEST);
 
+	// Account tab scrolling. Taken before the option pane renders, which
+	// would otherwise grab the scroll input over the same area.
+	int accountScroll = 0;
+	int accountMaxScroll = 0;
+	if (selectedCategory == 4) {
+		if (!_accountDragging && xm > catW && ym >= headerH) {
+			float s = Mouse::consumeScrollY();
+			if (s != 0) _accountScrollY -= s * Mouse::SCROLL_PIXELS_PER_UNIT;
+		}
+		accountMaxScroll = clampAccountScroll();
+		accountScroll = (int)_accountScrollY;
+	}
+
 	// Content pane (outside scissor)
 	int xmm = xm * width / minecraft->width;
 	int ymm = ym * height / minecraft->height - 1;
@@ -380,6 +398,14 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 		int hH = (bHeader != NULL) ? bHeader->height : 26;
 		float cx = (float)(cW + 6);
 		bool loggedIn = !minecraft->options.accountToken.empty();
+
+		// Clip below the header and shift everything up by the scroll offset;
+		// widgets keep their unscrolled positions, so the mouse is shifted too
+		glEnable2(GL_SCISSOR_TEST);
+		glScissor((GLint)(scale * (cW + 1)), 0, (GLsizei)(scale * (width - cW - 1)), (GLsizei)(scale * (height - hH)));
+		glPushMatrix2();
+		glTranslatef2(0, (float)-accountScroll, 0);
+		ym += accountScroll;
 
 		if (!loggedIn) {
 			minecraft->font->drawShadow("Login or Register", cx, (float)(hH + 34), 0xffffffff);
@@ -443,8 +469,44 @@ void OptionsScreen::render( int xm, int ym, float a ) {
 			}
 		}
 		if (!_accountStatus.empty())
-			minecraft->font->drawShadow(_accountStatus, cx, (float)(hH + 226), 0xffff8844);
+			minecraft->font->drawShadow(_accountStatus, cx, (float)getAccountStatusY((int)cx, hH), 0xffff8844);
+
+		glPopMatrix2();
+		ym -= accountScroll;
+
+		if (accountMaxScroll > 0) {
+			int visibleH = height - hH;
+			float barH = (float)visibleH * visibleH / (visibleH + accountMaxScroll);
+			if (barH < 8) barH = 8;
+			float barY = hH + (_accountScrollY / accountMaxScroll) * (visibleH - barH);
+			int barX = width - 3;
+			fill(barX, (int)barY, barX + 2, (int)(barY + barH), 0x88ffffff);
+		}
+		glDisable2(GL_SCISSOR_TEST);
 	}
+}
+
+// Where the account status line goes: below the cape picker, which can wrap
+// onto several rows
+int OptionsScreen::getAccountStatusY(int cx, int hH) const {
+	int y = hH + 226;
+	if (!minecraft->options.accountToken.empty()) {
+		int bx, by, bw, bh;
+		getCapeBoxRect((int)_capeChoices.size() - 1, cx, hH, bx, by, bw, bh);
+		if (by + bh + 6 > y) y = by + bh + 6;
+	}
+	return y;
+}
+
+int OptionsScreen::clampAccountScroll() {
+	int cW = (categoryButtons.size() > 0) ? categoryButtons[0]->width : 80;
+	int hH = (bHeader != NULL) ? bHeader->height : 26;
+	int contentBottom = getAccountStatusY(cW + 6, hH) + 14;
+	int maxScroll = contentBottom - height;
+	if (maxScroll < 0) maxScroll = 0;
+	if (_accountScrollY < 0) _accountScrollY = 0;
+	if (_accountScrollY > maxScroll) _accountScrollY = (float)maxScroll;
+	return maxScroll;
 }
 
 void OptionsScreen::removed()
@@ -648,8 +710,12 @@ void OptionsScreen::selectCategory( int index ) {
 void OptionsScreen::getCapeBoxRect(int index, int cx, int hH, int& bx, int& by, int& bw, int& bh) const {
     bw = bh = 20;
     const int gap = 4;
-    by = hH + 200;
-    bx = cx + (index + 1) * (bw + gap);
+    // Wrap onto more rows when the capes don't fit across the screen
+    int perRow = (width - cx - 4) / (bw + gap);
+    if (perRow < 1) perRow = 1;
+    int slot = index + 1;
+    by = hH + 200 + (slot / perRow) * (bh + gap);
+    bx = cx + (slot % perRow) * (bw + gap);
 }
 
 void OptionsScreen::applyCapeSelection(const std::string& capeName) {
@@ -774,8 +840,17 @@ void OptionsScreen::mouseClicked( int x, int y, int buttonNum ) {
 		if(currentOptionPane != NULL)
 			currentOptionPane->mouseClicked(minecraft, x, y, buttonNum);
 		super::mouseClicked(x, y, buttonNum);
+
+		if (selectedCategory == 4 && x >= catW && y >= headerH) {
+			// Click in the account area — start a possible drag-scroll
+			_accountDragging = true;
+			_accountDragMoved = false;
+			_accountDragStartY = y;
+			_accountDragStartScroll = _accountScrollY;
+		}
 	}
-	if (selectedCategory == 4) {
+	if (selectedCategory == 4 && y >= headerH) {
+		y += (int)_accountScrollY; // widgets are laid out unscrolled
 		// Clear all account textbox focus first, then set focus on the clicked one
 		auto clearAccountFocus = [&]() {
 			if (txtUsername)    txtUsername->focused    = false;
@@ -801,6 +876,16 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
     int sidebarTop = headerH + 2;
 
     _catDragging = false;
+
+    // Releasing a drag-scroll of the account tab isn't a click
+    bool accountDragged = _accountDragging && _accountDragMoved;
+    _accountDragging = false;
+    if (accountDragged) {
+        clickedButton = NULL;
+        return;
+    }
+    // Account widgets are laid out unscrolled
+    const int ay = (selectedCategory == 4 && y >= headerH) ? y + (int)_accountScrollY : -1;
 
     LOGI("mouseReleased: x=%d y=%d btn=%d | browseSkin visible=%d bounds=(%d,%d,%d,%d)\n",
         x, y, buttonNum,
@@ -833,7 +918,7 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
     auto accountBtnHit = [&](Button* btn) -> bool {
         return btn && btn->visible && buttonNum == 1 &&
                x >= btn->x && x < btn->x + btn->width &&
-               y >= btn->y && y < btn->y + btn->height;
+               ay >= btn->y && ay < btn->y + btn->height;
     };
     if (accountBtnHit(btnLogin))          { buttonClicked(btnLogin);         clickedButton = NULL; return; }
     if (accountBtnHit(btnRegister))       { buttonClicked(btnRegister);      clickedButton = NULL; return; }
@@ -848,13 +933,13 @@ void OptionsScreen::mouseReleased(int x, int y, int buttonNum) {
         int bx, by, bw, bh;
 
         getCapeBoxRect(-1, cx, hH, bx, by, bw, bh);
-        if (x >= bx && x < bx + bw && y >= by && y < by + bh) {
+        if (x >= bx && x < bx + bw && ay >= by && ay < by + bh) {
             applyCapeSelection("");
             return;
         }
         for (size_t i = 0; i < _capeChoices.size(); ++i) {
             getCapeBoxRect((int)i, cx, hH, bx, by, bw, bh);
-            if (x >= bx && x < bx + bw && y >= by && y < by + bh) {
+            if (x >= bx && x < bx + bw && ay >= by && ay < by + bh) {
                 applyCapeSelection(_capeChoices[i]);
                 return;
             }
@@ -892,6 +977,15 @@ void OptionsScreen::tick() {
 	} else if (_catScrollVelocity > 0.5f || _catScrollVelocity < -0.5f) {
 		_catScrollY += _catScrollVelocity;
 		_catScrollVelocity *= 0.85f;
+	}
+
+	if (_accountDragging) {
+		int mx = Mouse::getX();
+		int my = Mouse::getY();
+		toGUICoordinate(mx, my);
+		int delta = _accountDragStartY - my;
+		if (delta > 4 || delta < -4) _accountDragMoved = true;
+		if (_accountDragMoved) _accountScrollY = _accountDragStartScroll + delta;
 	}
 
 	if(currentOptionPane != NULL)

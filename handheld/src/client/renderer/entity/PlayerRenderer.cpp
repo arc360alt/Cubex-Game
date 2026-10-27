@@ -128,7 +128,8 @@ void PlayerRenderer::additionalRendering(Mob* mob, float a) {
 	// by HumanoidModel::setupAnim() earlier this frame — 0.5 rad while
 	// sneaking, 0 otherwise) so the cape bends together with the back instead
 	// of staying at a fixed angle and clipping through a crouched player.
-	capeModel->cape.xRot = playerModel->body.xRot + wind;
+	// Negated: the cape model is turned around 180 degrees (see CapeModel.h)
+	capeModel->cape.xRot = -(playerModel->body.xRot + wind);
 	capeModel->cape.render(1 / 16.0f);
 }
 

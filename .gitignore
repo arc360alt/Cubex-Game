@@ -56,3 +56,5 @@ accounts.db
 backend/skins
 
 SkinMC-*
+# Cape images are dropped in by the server admin, not committed
+backend/capes/*.png
